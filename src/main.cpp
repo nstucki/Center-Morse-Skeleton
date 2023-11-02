@@ -83,4 +83,6 @@ int main(int argc, char** argv) {
     cout << endl;
 
     cgc.printImage();
+
+    cgc.processLowerStars();
 }

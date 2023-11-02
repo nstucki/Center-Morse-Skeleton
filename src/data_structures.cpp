@@ -1,8 +1,8 @@
 #include "data_structures.h"
 
 #include <iostream>
-#include <algorithm>
 #include <iomanip>
+#include <algorithm>
 
 using namespace std;
 
@@ -13,6 +13,10 @@ Cube::Cube() : birth(0), x(0), y(0), z(0), type(0), dim(0) {}
 
 Cube::Cube(value_t _birth, index_t _x, index_t _y, index_t _z, uint8_t _type, uint8_t _dim) :
 	birth(_birth), x(_x), y(_y), z(_z), type(_type), dim(_dim) {}
+
+
+Cube::Cube(const Cube& _cube) : birth(_cube.birth), x(_cube.x), y(_cube.y), z(_cube.z), 
+	type(_cube.type), dim(_cube.dim) {}
 
 
 bool Cube::operator==(const Cube& rhs) const{ 
@@ -239,6 +243,33 @@ vector<Cube> CubicalGridComplex::getLowerStar(const index_t& x, const index_t& y
 }
 
 
-void processLowerStars() {
-	
+size_t CubicalGridComplex::numUnpairedFaces(const Cube& cube, const vector<Cube>& L) const {
+	size_t counter;
+	for (const Cube& c : L) {}
+
+	return counter;
+}
+
+
+void CubicalGridComplex::processLowerStars() {
+	vector<Cube> L;
+	priority_queue<Cube> PQzero;
+	for (index_t x = 0; x < shape[0]; ++x) {
+		for (index_t y = 0; y < shape[1]; ++y) {
+			for (index_t z = 0; z < shape[2]; ++z) {
+				cout << "pixel: ";
+				cout << x << " " << y << " " << z << endl;
+				L = getLowerStar(x, y, z);
+				if (L.size() == 1) { critical.push_back(L[0]); }
+				else {
+					sort(L.begin(), L.end());
+					V.insert(L[0], L[1]);
+					for (size_t i = 2; i < L.size(); ++i) { 
+						if (L[i].dim == 1) { PQzero.push(L[i]); }
+					}
+				} 
+
+			}
+		}
+	}
 }

@@ -3,6 +3,7 @@
 #include "config.h"
 
 #include <vector>
+#include <queue>
 
 using namespace std;
 
@@ -12,15 +13,16 @@ class Cube {
 	public:
 	Cube();
 	Cube(value_t birth, index_t x, index_t y, index_t z, uint8_t type, uint8_t dim);
+	Cube(const Cube& _cube);
 	bool operator==(const Cube& rhs) const;
 	bool operator<(const Cube& other) const;
 	void print() const;
-	const value_t birth;
-	const index_t x;
-	const index_t y;
-	const index_t z;
-	const uint8_t type;
-	const uint8_t dim;
+	value_t birth;
+	index_t x;
+	index_t y;
+	index_t z;
+	uint8_t type;
+	uint8_t dim;
 	struct Hash {
 		size_t operator()(const Cube& cube) const {
 			size_t h1 = hash<value_t>{}(cube.birth);
@@ -48,6 +50,14 @@ class Cube {
 
 
 
+struct ReverseOrder {
+    bool operator()(const Cube& lhs, const Cube& rhs) const {
+        return rhs < lhs;
+    }
+};
+
+
+
 class CubicalGridComplex {
 	public:
 	CubicalGridComplex(const vector<value_t>&& image, const vector<index_t>&& shape);
@@ -67,10 +77,11 @@ class CubicalGridComplex {
 	void addValue(const index_t& x, const index_t& y, const index_t& z, const value_t& value);
 	value_t findMinimumDistance();
 	vector<Cube> getLowerStar(const index_t& x, const index_t& y, const index_t& z) const;
+	size_t numUnpairedFaces(const Cube& cube, const vector<Cube>& L) const;
 	value_t*** grid;
 	const vector<index_t> shape;
 	bool perturbed;
-	vector<Cube> crtical;
+	vector<Cube> critical;
 	unordered_map<Cube, Cube, Cube::Hash> V;
 	unordered_map<Cube, Cube, Cube::Hash> Vdual;
 };
