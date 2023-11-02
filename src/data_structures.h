@@ -1,0 +1,76 @@
+#pragma once
+
+#include "config.h"
+
+#include <vector>
+
+using namespace std;
+
+
+
+class Cube {
+	public:
+	Cube();
+	Cube(value_t birth, index_t x, index_t y, index_t z, uint8_t type, uint8_t dim);
+	bool operator==(const Cube& rhs) const;
+	bool operator<(const Cube& other) const;
+	void print() const;
+	const value_t birth;
+	const index_t x;
+	const index_t y;
+	const index_t z;
+	const uint8_t type;
+	const uint8_t dim;
+	struct Hash {
+		size_t operator()(const Cube& cube) const {
+			size_t h1 = hash<value_t>{}(cube.birth);
+			size_t h2 = hash<index_t>{}(cube.x);
+			size_t h3 = hash<index_t>{}(cube.y);
+			size_t h4 = hash<index_t>{}(cube.z);
+			size_t h5 = hash<uint8_t>{}(cube.type);
+			size_t h6 = hash<uint8_t>{}(cube.dim);
+
+			const size_t seed = 0;
+			const size_t prime1 = 17;
+			const size_t prime2 = 31;
+			const size_t prime3 = 37;
+			const size_t prime4 = 43;
+			const size_t prime5 = 53;
+			const size_t prime6 = 61;
+			
+			size_t hash = seed;
+			hash ^= (h1 + prime1) + (h2 + prime2) + (h3 + prime3) + (h4 + prime4) + (h5 + prime5) + (h6 + prime6) 
+					+ seed + (seed << 6) + (seed >> 2);
+			return hash;
+		}
+	};
+};
+
+
+
+class CubicalGridComplex {
+	public:
+	CubicalGridComplex(const vector<value_t>&& image, const vector<index_t>&& shape);
+	~CubicalGridComplex();
+	value_t getValue(const index_t& x, const index_t& y, const index_t& z) const;
+	value_t getBirth(const index_t& x, const index_t& y, const index_t& z, 
+						const uint8_t& type, const uint8_t& dim) const;
+	void perturbImage();
+	void printImage() const;
+
+	void processLowerStars();
+
+	private:
+	value_t*** allocateMemory() const;
+	void getGridFromVector(const vector<value_t>& vector);
+	void setValue(const index_t& x, const index_t& y, const index_t& z, const value_t& value);
+	void addValue(const index_t& x, const index_t& y, const index_t& z, const value_t& value);
+	value_t findMinimumDistance();
+	vector<Cube> getLowerStar(const index_t& x, const index_t& y, const index_t& z) const;
+	value_t*** grid;
+	const vector<index_t> shape;
+	bool perturbed;
+	vector<Cube> crtical;
+	unordered_map<Cube, Cube, Cube::Hash> V;
+	unordered_map<Cube, Cube, Cube::Hash> Vdual;
+};
