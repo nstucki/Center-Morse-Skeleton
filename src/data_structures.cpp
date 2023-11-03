@@ -208,6 +208,45 @@ value_t CubicalGridComplex::getBirth(const index_t& x, const index_t& y, const i
 }
 
 
+Cube CubicalGridComplex::getCube(const index_t& x, const index_t& y, const index_t& z) const {
+	uint8_t dim = 0;
+	if (x%2 != 0) { ++dim; }
+	if (y%2 != 0) { ++dim; }
+	if (z%2 != 0) { ++dim; }
+
+	index_t xCube = x/2;
+	index_t yCube = y/2;
+	index_t zCube = z/2;
+
+	uint8_t type;
+	switch(dim) {
+		case 0:
+			type = 0;
+			break;
+
+		case 1:
+			if (x%2 != 0) { type = 0; }
+			if (y%2 != 0) { type = 1; }
+			if (z%2 != 0) { type = 2; }
+			break;
+
+		case 2:
+			if (x%2 != 0 && y%2 != 0) { type = 2; }
+			if (x%2 != 0 && z%2 != 0) { type = 1; }
+			if (y%2 != 0 && z%2 != 0) { type = 0; }
+			break;
+
+		case 3:
+			type = 0;
+			break;
+	}
+
+	value_t birth = getBirth(xCube, yCube, zCube, type, dim);
+
+	return Cube(birth, xCube, yCube, zCube, type, dim);
+}
+
+
 void CubicalGridComplex::perturbImage() {
 	perturbed = true;
 	value_t minDistance = findMinimumDistance();
@@ -222,7 +261,115 @@ void CubicalGridComplex::perturbImage() {
 			}
 		}
 	}
+}
 
+
+void CubicalGridComplex::processLowerStars() {
+	vector<Cube> L;
+	vector<Cube> cache;
+	priority_queue<Cube> PQzero;
+	priority_queue<Cube> PQone;
+	Cube alpha;
+	Cube gamma;
+	Cube delta;
+
+	printGradientVectorfieldImage(); cout << endl;
+
+	for (index_t x = 0; x < shape[0]; ++x) {
+		for (index_t y = 0; y < shape[1]; ++y) {
+			for (index_t z = 0; z < shape[2]; ++z) {
+				
+				cout << "pixel: " << x << " " << y << " " << z << endl;
+
+				L = getLowerStar(x, y, z);
+				
+				if (L.size() == 1) { C.push_back(L[0]); }
+				else {
+					sort(L.begin(), L.end());
+					delta = L[1];
+					V.emplace(L[0], delta); Vdual.emplace(delta, L[0]);
+					L.erase(L.begin(), L.begin()+2);
+					for (const Cube& beta : L) {
+						if (beta.dim == 1) { PQzero.push(beta); }
+						else {
+							if (delta.isFaceOf(beta) && numUnpairedFaces(beta, L) == 1) {
+								PQone.push(beta);
+							} else { cache.push_back(beta); }
+						}
+					}
+					L = cache;
+					cache.clear();
+
+					while(!PQzero.empty() || !PQone.empty()) {
+						while(!PQone.empty()) {
+							alpha = PQone.top();
+							PQone.pop();
+							if (numUnpairedFaces(alpha, L) == 0) { PQzero.push(alpha); }
+							else {
+								V.emplace(p, alpha); Vdual.emplace(alpha, p);
+								p.removeFromPQ(PQzero);
+								for (const Cube& beta : L) {
+									if ((alpha.isFaceOf(beta) || p.isFaceOf(beta)) 
+											&& numUnpairedFaces(beta, L) == 1) {
+										PQone.push(beta);
+									} else { cache.push_back(beta); }
+								}
+								L = cache;
+								cache.clear();
+							}
+						}
+					
+						if (!PQzero.empty()) {
+							gamma = PQzero.top();
+							PQzero.pop();
+							C.push_back(gamma);
+							for (const Cube& beta : L) {
+								if (gamma.isFaceOf(beta) && numUnpairedFaces(beta, L) == 1) {
+									PQone.push(beta);
+								} else { cache.push_back(beta); }
+							}
+							L = cache;
+							cache.clear();
+						}
+					}
+				}
+
+				printGradientVectorfieldImage(); cout << endl;
+
+			}
+		}
+	}
+}
+
+
+void CubicalGridComplex::printGradientVectorfield() const {
+	cout << "critical: " << endl;
+	for (const Cube& c : C) {
+		c.print(); cout << endl;
+	}
+	cout << "V: " << endl;
+	for (auto it = V.begin(); it != V.end(); ++it) {
+        const Cube& key = it->first;
+		(it->first).print(); cout << " -> "; (it->second).print(); cout << endl;
+    }
+}
+
+
+void CubicalGridComplex::printGradientVectorfieldImage() const {
+	Cube cube;
+	for (size_t y = 0; y < 2*shape[1]-1; ++y) {
+		for (size_t x = 0; x < 2*shape[0]-1; ++x) {
+			for (size_t z = 0; z < 2*shape[2]-1; ++z) {
+				cube = getCube(x, y, z);
+				if (find(C.begin(), C.end(), cube) != C.end()) { cout << "c "; }
+				else if (V.count(cube) != 0) { cout << "p "; } 
+				else if (Vdual.count(cube) != 0) { cout << "q "; }
+				else { cout << "x "; }
+			}
+			cout << "  ";
+		}
+		cout << endl;
+	}
 }
 
 
@@ -232,8 +379,8 @@ void CubicalGridComplex::printImage() const {
 		for (size_t x = 0; x < shape[0]; ++x) {
             for (size_t z = 0; z < shape[2]; ++z) {
                 value = getValue(x, y, z);
-                if (value < 10) { cout << ' ' << fixed << setprecision(3) << value << ' '; }
-				else { cout << fixed << setprecision(3) << value << ' '; }            
+                if (value < 10) { cout << " " << fixed << setprecision(3) << value << " "; }
+				else { cout << fixed << setprecision(3) << value << " "; }            
             }
             cout << "  ";
         }
@@ -359,75 +506,4 @@ size_t CubicalGridComplex::numUnpairedFaces(const Cube& cube, const vector<Cube>
 	}
 
 	return counter;
-}
-
-
-void CubicalGridComplex::processLowerStars() {
-	vector<Cube> L;
-	vector<Cube> cache;
-	priority_queue<Cube> PQzero;
-	priority_queue<Cube> PQone;
-	Cube alpha;
-	Cube gamma;
-	Cube delta;
-
-	for (index_t x = 0; x < shape[0]; ++x) {
-		for (index_t y = 0; y < shape[1]; ++y) {
-			for (index_t z = 0; z < shape[2]; ++z) {
-				cout << "pixel: " << x << " " << y << " " << z << endl;
-				L = getLowerStar(x, y, z);
-				
-				if (L.size() == 1) { C.push_back(L[0]); }
-				else {
-					sort(L.begin(), L.end());
-					delta = L[1];
-					V.emplace(L[0], delta); Vdual.emplace(delta, L[0]);
-					L.erase(L.begin(), L.begin()+2);
-					for (const Cube& beta : L) {
-						if (beta.dim == 1) { PQzero.push(beta); }
-						else {
-							if (delta.isFaceOf(beta) && numUnpairedFaces(beta, L) == 1) {
-								PQone.push(beta);
-							} else { cache.push_back(beta); }
-						}
-					}
-					L = cache;
-					cache.clear();
-
-					while(!PQzero.empty() || !PQone.empty()) {
-						while(!PQone.empty()) {
-							alpha = PQone.top();
-							PQone.pop();
-							if (numUnpairedFaces(alpha, L) == 0) { PQzero.push(alpha); }
-							else {
-								V.emplace(p, alpha); Vdual.emplace(alpha, p);
-								p.removeFromPQ(PQzero);
-								for (const Cube& beta : L) {
-									if ((alpha.isFaceOf(beta) || p.isFaceOf(beta)) 
-											&& numUnpairedFaces(beta, L) == 1) {
-										PQone.push(beta);
-									} else { cache.push_back(beta); }
-								}
-								L = cache;
-								cache.clear();
-							}
-						}
-					
-						if (!PQzero.empty()) {
-							gamma = PQzero.top();
-							PQzero.pop();
-							C.push_back(gamma);
-							for (const Cube& beta : L) {
-								if (gamma.isFaceOf(beta) && numUnpairedFaces(beta, L) == 1) {
-									PQone.push(beta);
-								} else { cache.push_back(beta); }
-							}
-							L = cache;
-							cache.clear();
-						}
-					}
-				}
-			}
-		}
-	}
 }

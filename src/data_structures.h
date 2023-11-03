@@ -70,10 +70,12 @@ class CubicalGridComplex {
 	value_t getValue(const index_t& x, const index_t& y, const index_t& z) const;
 	value_t getBirth(const index_t& x, const index_t& y, const index_t& z, 
 						const uint8_t& type, const uint8_t& dim) const;
+	Cube getCube(const index_t& x, const index_t& y, const index_t& z) const;
 	void perturbImage();
-	void printImage() const;
-
 	void processLowerStars();
+	void printGradientVectorfield() const;
+	void printGradientVectorfieldImage() const;
+	void printImage() const;
 
 	private:
 	value_t*** allocateMemory() const;
