@@ -76,13 +76,8 @@ int main(int argc, char** argv) {
 
     CubicalGridComplex cgc(std::move(input), std::move(shape));
 
-    cgc.printImage();
-
+    cgc.printImage(); cout << endl;
     cgc.perturbImage();
-
-    cout << endl;
-
-    cgc.printImage();
-
+    cgc.printImage(); cout << endl;
     cgc.processLowerStars();
 }

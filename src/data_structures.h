@@ -13,9 +13,14 @@ class Cube {
 	public:
 	Cube();
 	Cube(value_t birth, index_t x, index_t y, index_t z, uint8_t type, uint8_t dim);
-	Cube(const Cube& _cube);
+	Cube(const Cube& other);
+	Cube& operator=(const Cube& rhs);
 	bool operator==(const Cube& rhs) const;
-	bool operator<(const Cube& other) const;
+	bool operator!=(const Cube& rhs) const;
+	bool operator<(const Cube& rhs) const;
+	vector<vector<index_t>> getVertices() const;
+	bool isFaceOf(const Cube& other) const;
+	void removeFromPQ(priority_queue<Cube>& PQ) const;
 	void print() const;
 	value_t birth;
 	index_t x;
@@ -77,11 +82,12 @@ class CubicalGridComplex {
 	void addValue(const index_t& x, const index_t& y, const index_t& z, const value_t& value);
 	value_t findMinimumDistance();
 	vector<Cube> getLowerStar(const index_t& x, const index_t& y, const index_t& z) const;
-	size_t numUnpairedFaces(const Cube& cube, const vector<Cube>& L) const;
+	size_t numUnpairedFaces(const Cube& cube, const vector<Cube>& L);
 	value_t*** grid;
 	const vector<index_t> shape;
 	bool perturbed;
-	vector<Cube> critical;
+	vector<Cube> C;
 	unordered_map<Cube, Cube, Cube::Hash> V;
 	unordered_map<Cube, Cube, Cube::Hash> Vdual;
+	Cube p;
 };

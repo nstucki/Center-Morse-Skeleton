@@ -15,22 +15,127 @@ Cube::Cube(value_t _birth, index_t _x, index_t _y, index_t _z, uint8_t _type, ui
 	birth(_birth), x(_x), y(_y), z(_z), type(_type), dim(_dim) {}
 
 
-Cube::Cube(const Cube& _cube) : birth(_cube.birth), x(_cube.x), y(_cube.y), z(_cube.z), 
-	type(_cube.type), dim(_cube.dim) {}
+Cube::Cube(const Cube& other) : birth(other.birth), x(other.x), y(other.y), z(other.z), 
+	type(other.type), dim(other.dim) {}
+
+
+Cube& Cube::operator=(const Cube& rhs) {
+	if (this != &rhs) {
+		birth = rhs.birth;
+		x = rhs.x;
+		y = rhs.y;
+		z = rhs.z;
+		type = rhs.type;
+		dim = rhs.dim;
+	}
+	return *this;
+}
 
 
 bool Cube::operator==(const Cube& rhs) const{ 
 	return (x == rhs.x && y == rhs.y && z == rhs.z && type == rhs.type && dim == rhs.dim);
 }
 
-bool Cube::operator<(const Cube& other) const {
-	if (birth != other.birth) { return birth < other.birth; }
-	else if (dim != other.dim) { return dim < other.dim; }
-	else if (x != other.x) { return x < other.x; }
-	else if (y != other.y) { return y < other.y; }
-	else if (z != other.z) { return z < other.z; }
-	return type < other.type;
+
+bool Cube::operator!=(const Cube& rhs) const {
+    return !(*this == rhs);
 }
+
+
+bool Cube::operator<(const Cube& rhs) const {
+	if (birth != rhs.birth) { return birth < rhs.birth; }
+	else if (dim != rhs.dim) { return dim < rhs.dim; }
+	else if (x != rhs.x) { return x < rhs.x; }
+	else if (y != rhs.y) { return y < rhs.y; }
+	else if (z != rhs.z) { return z < rhs.z; }
+	return type < rhs.type;
+}
+
+
+vector<vector<index_t>> Cube::getVertices() const {
+	vector<vector<index_t>> vertices = {{x, y, z}};
+	switch(dim) {
+		case 0:
+			return vertices;
+
+		case 1:
+			switch(type) {
+				case 0:
+					vertices.push_back({x+1, y, z});
+					return vertices;
+
+				case 1:
+					vertices.push_back({x, y+1, z});
+					return vertices;
+
+				case 2:
+					vertices.push_back({x, y, z+1});
+					return vertices;
+			}
+
+		case 2:
+			switch(type) {
+				case 0:
+					vertices.push_back({x, y+1, z});
+					vertices.push_back({x, y, z+1});
+					vertices.push_back({x, y+1, z+1});
+					return vertices;
+
+				case 1:
+					vertices.push_back({x+1, y, z});
+					vertices.push_back({x, y, z+1});
+					vertices.push_back({x+1, y, z+1});
+					return vertices;
+
+				case 2:
+					vertices.push_back({x+1, y, z});
+					vertices.push_back({x, y+1, z});
+					vertices.push_back({x+1, y+1, z});
+					return vertices;
+			}
+
+		case 3:
+			vertices.push_back({x+1, y, z});
+			vertices.push_back({x, y+1, z});
+			vertices.push_back({x, y, z+1});
+			vertices.push_back({x+1, y+1, z});
+			vertices.push_back({x+1, y, z+1});
+			vertices.push_back({x, y+1, z+1});
+			vertices.push_back({x+1, y+1, z+1});
+			return vertices;
+	}
+
+	return vertices;
+}
+
+
+bool Cube::isFaceOf(const Cube& other) const {
+	if (dim > other.dim-1) { return false; }
+
+	vector<vector<index_t>> vertices = getVertices();
+	vector<vector<index_t>> verticesOther = other.getVertices();
+	for (vector<index_t>& vertex : vertices) {
+		if (find(verticesOther.begin(), verticesOther.end(), vertex) == verticesOther.end()) { 
+			return false;
+		}
+	}
+
+	return true;
+}
+
+
+void Cube::removeFromPQ(priority_queue<Cube>& PQ) const {
+    vector<Cube> temp;
+    while (!PQ.empty()) {
+        if (PQ.top() != *this) {
+            temp.push_back(PQ.top());
+        }
+        PQ.pop();
+    }
+
+    make_heap(temp.begin(), temp.end());
+    PQ = priority_queue<Cube>(temp.begin(), temp.end());
+} 
 
 
 void Cube::print() const {
@@ -243,9 +348,15 @@ vector<Cube> CubicalGridComplex::getLowerStar(const index_t& x, const index_t& y
 }
 
 
-size_t CubicalGridComplex::numUnpairedFaces(const Cube& cube, const vector<Cube>& L) const {
+size_t CubicalGridComplex::numUnpairedFaces(const Cube& cube, const vector<Cube>& L) {
 	size_t counter;
-	for (const Cube& c : L) {}
+
+	for (const Cube& l : L) {
+		if (l.isFaceOf(cube) && V.count(l) == 0 && Vdual.count(l) == 0) { 
+			++counter;
+			p = l;
+		}
+	}
 
 	return counter;
 }
@@ -253,22 +364,69 @@ size_t CubicalGridComplex::numUnpairedFaces(const Cube& cube, const vector<Cube>
 
 void CubicalGridComplex::processLowerStars() {
 	vector<Cube> L;
+	vector<Cube> cache;
 	priority_queue<Cube> PQzero;
+	priority_queue<Cube> PQone;
+	Cube alpha;
+	Cube gamma;
+	Cube delta;
+
 	for (index_t x = 0; x < shape[0]; ++x) {
 		for (index_t y = 0; y < shape[1]; ++y) {
 			for (index_t z = 0; z < shape[2]; ++z) {
-				cout << "pixel: ";
-				cout << x << " " << y << " " << z << endl;
+				cout << "pixel: " << x << " " << y << " " << z << endl;
 				L = getLowerStar(x, y, z);
-				if (L.size() == 1) { critical.push_back(L[0]); }
+				
+				if (L.size() == 1) { C.push_back(L[0]); }
 				else {
 					sort(L.begin(), L.end());
-					V.insert(L[0], L[1]);
-					for (size_t i = 2; i < L.size(); ++i) { 
-						if (L[i].dim == 1) { PQzero.push(L[i]); }
+					delta = L[1];
+					V.emplace(L[0], delta); Vdual.emplace(delta, L[0]);
+					L.erase(L.begin(), L.begin()+2);
+					for (const Cube& beta : L) {
+						if (beta.dim == 1) { PQzero.push(beta); }
+						else {
+							if (delta.isFaceOf(beta) && numUnpairedFaces(beta, L) == 1) {
+								PQone.push(beta);
+							} else { cache.push_back(beta); }
+						}
 					}
-				} 
+					L = cache;
+					cache.clear();
 
+					while(!PQzero.empty() || !PQone.empty()) {
+						while(!PQone.empty()) {
+							alpha = PQone.top();
+							PQone.pop();
+							if (numUnpairedFaces(alpha, L) == 0) { PQzero.push(alpha); }
+							else {
+								V.emplace(p, alpha); Vdual.emplace(alpha, p);
+								p.removeFromPQ(PQzero);
+								for (const Cube& beta : L) {
+									if ((alpha.isFaceOf(beta) || p.isFaceOf(beta)) 
+											&& numUnpairedFaces(beta, L) == 1) {
+										PQone.push(beta);
+									} else { cache.push_back(beta); }
+								}
+								L = cache;
+								cache.clear();
+							}
+						}
+					
+						if (!PQzero.empty()) {
+							gamma = PQzero.top();
+							PQzero.pop();
+							C.push_back(gamma);
+							for (const Cube& beta : L) {
+								if (gamma.isFaceOf(beta) && numUnpairedFaces(beta, L) == 1) {
+									PQone.push(beta);
+								} else { cache.push_back(beta); }
+							}
+							L = cache;
+							cache.clear();
+						}
+					}
+				}
 			}
 		}
 	}
