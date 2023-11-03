@@ -81,4 +81,5 @@ int main(int argc, char** argv) {
     cgc.printImage(); cout << endl;
     cgc.processLowerStars();
     cgc.printGradientVectorfieldImage(); cout << endl;
+    cgc.checkGradientVectorfield();
 }

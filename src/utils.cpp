@@ -86,3 +86,32 @@ void readImage(const string& filename, const fileFormat& format, vector<double>&
         }
     }
 }
+
+
+
+void removeFromPQ(const Cube& cube, priority_queue<Cube, vector<Cube>, ReverseOrder>& PQ) {
+    vector<Cube> temp;
+    while (!PQ.empty()) {
+        if (PQ.top() != cube) {
+            temp.push_back(PQ.top());
+        }
+        PQ.pop();
+    }
+
+    make_heap(temp.begin(), temp.end());
+    PQ = priority_queue<Cube, vector<Cube>, ReverseOrder>(temp.begin(), temp.end());
+} 
+
+
+
+void printPQ(priority_queue<Cube, vector<Cube>, ReverseOrder>& PQ) {
+    vector<Cube> temp;
+    while (!PQ.empty()) {
+        PQ.top().print(); cout << endl;
+        temp.push_back(PQ.top());
+        PQ.pop();
+    }
+
+    make_heap(temp.begin(), temp.end());
+    PQ = priority_queue<Cube, vector<Cube>, ReverseOrder>(temp.begin(), temp.end());
+}

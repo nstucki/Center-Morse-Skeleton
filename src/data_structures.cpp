@@ -1,5 +1,7 @@
 #include "data_structures.h"
 
+#include "utils.h"
+
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
@@ -122,20 +124,6 @@ bool Cube::isFaceOf(const Cube& other) const {
 
 	return true;
 }
-
-
-void Cube::removeFromPQ(priority_queue<Cube>& PQ) const {
-    vector<Cube> temp;
-    while (!PQ.empty()) {
-        if (PQ.top() != *this) {
-            temp.push_back(PQ.top());
-        }
-        PQ.pop();
-    }
-
-    make_heap(temp.begin(), temp.end());
-    PQ = priority_queue<Cube>(temp.begin(), temp.end());
-} 
 
 
 void Cube::print() const {
@@ -266,76 +254,83 @@ void CubicalGridComplex::perturbImage() {
 
 void CubicalGridComplex::processLowerStars() {
 	vector<Cube> L;
-	vector<Cube> cache;
-	priority_queue<Cube> PQzero;
-	priority_queue<Cube> PQone;
+	//vector<Cube> cache;
+	priority_queue<Cube, vector<Cube>, ReverseOrder> PQzero;
+	priority_queue<Cube, vector<Cube>, ReverseOrder> PQone;
 	Cube alpha;
-	Cube gamma;
-	Cube delta;
-
-	printGradientVectorfieldImage(); cout << endl;
+	Cube pair;
 
 	for (index_t x = 0; x < shape[0]; ++x) {
 		for (index_t y = 0; y < shape[1]; ++y) {
 			for (index_t z = 0; z < shape[2]; ++z) {
-				
-				cout << "pixel: " << x << " " << y << " " << z << endl;
 
 				L = getLowerStar(x, y, z);
-				
 				if (L.size() == 1) { C.push_back(L[0]); }
 				else {
 					sort(L.begin(), L.end());
-					delta = L[1];
-					V.emplace(L[0], delta); Vdual.emplace(delta, L[0]);
+					alpha = L[1];
+					V.emplace(L[0], alpha); Vdual.emplace(alpha, L[0]);
 					L.erase(L.begin(), L.begin()+2);
+					
 					for (const Cube& beta : L) {
 						if (beta.dim == 1) { PQzero.push(beta); }
-						else {
-							if (delta.isFaceOf(beta) && numUnpairedFaces(beta, L) == 1) {
-								PQone.push(beta);
-							} else { cache.push_back(beta); }
-						}
+						else if (alpha.isFaceOf(beta) && numUnpairedFaces(beta, L) == 1) { PQone.push(beta); }
 					}
-					L = cache;
-					cache.clear();
 
 					while(!PQzero.empty() || !PQone.empty()) {
 						while(!PQone.empty()) {
-							alpha = PQone.top();
-							PQone.pop();
+							alpha = PQone.top(); PQone.pop();
 							if (numUnpairedFaces(alpha, L) == 0) { PQzero.push(alpha); }
-							else {
-								V.emplace(p, alpha); Vdual.emplace(alpha, p);
-								p.removeFromPQ(PQzero);
+							else {	
+								pair = unpairedFace(alpha, L);
+								V.emplace(pair, alpha); Vdual.emplace(alpha, pair);
+								removeFromPQ(pair, PQzero);
 								for (const Cube& beta : L) {
-									if ((alpha.isFaceOf(beta) || p.isFaceOf(beta)) 
+									if ((alpha.isFaceOf(beta) || pair.isFaceOf(beta)) 
 											&& numUnpairedFaces(beta, L) == 1) {
 										PQone.push(beta);
-									} else { cache.push_back(beta); }
+									}
 								}
-								L = cache;
-								cache.clear();
 							}
 						}
-					
 						if (!PQzero.empty()) {
-							gamma = PQzero.top();
+							alpha = PQzero.top();
 							PQzero.pop();
-							C.push_back(gamma);
+							C.push_back(alpha);
 							for (const Cube& beta : L) {
-								if (gamma.isFaceOf(beta) && numUnpairedFaces(beta, L) == 1) {
+								if (alpha.isFaceOf(beta) && numUnpairedFaces(beta, L) == 1) {
 									PQone.push(beta);
-								} else { cache.push_back(beta); }
+								}
 							}
-							L = cache;
-							cache.clear();
 						}
 					}
 				}
+			}
+		}
+	}
+}
 
-				printGradientVectorfieldImage(); cout << endl;
 
+void CubicalGridComplex::checkGradientVectorfield() const {
+	size_t counter;
+	value_t birth;
+	Cube cube;
+	for (index_t x = 0; x < shape[0]; ++x) {
+		for (index_t y = 0; y < shape[1]; ++y) {
+			for (index_t z = 0; z < shape[2]; ++z) {
+				for (uint8_t type = 0; type < 3; ++type) {
+					for (uint8_t dim = 0; dim < 4; ++dim) {
+						if ((dim == 0 && type != 0) || (dim == 3 && type != 0)) { continue; }
+						birth = getBirth(x, y, z, type, dim);
+						if (birth == INFTY) { continue; }
+						cube = Cube(birth, x, y, z, type, dim);
+						counter = 0;
+						if (V.count(cube) != 0) { ++counter; }
+						if (Vdual.count(cube) != 0) { ++counter; }
+						if (find(C.begin(), C.end(), cube) != C.end()) { ++counter; }
+						if (counter != 1) { cube.print(); cout << " occurs " << counter << " times!" << endl; }
+					}
+				}
 			}
 		}
 	}
@@ -364,7 +359,7 @@ void CubicalGridComplex::printGradientVectorfieldImage() const {
 				if (find(C.begin(), C.end(), cube) != C.end()) { cout << "c "; }
 				else if (V.count(cube) != 0) { cout << "p "; } 
 				else if (Vdual.count(cube) != 0) { cout << "q "; }
-				else { cout << "x "; }
+				else { cout << "  "; }
 			}
 			cout << "  ";
 		}
@@ -496,14 +491,25 @@ vector<Cube> CubicalGridComplex::getLowerStar(const index_t& x, const index_t& y
 
 
 size_t CubicalGridComplex::numUnpairedFaces(const Cube& cube, const vector<Cube>& L) {
-	size_t counter;
-
-	for (const Cube& l : L) {
-		if (l.isFaceOf(cube) && V.count(l) == 0 && Vdual.count(l) == 0) { 
+	size_t counter = 0;
+	for (const Cube& l : L) { 
+		if (l.isFaceOf(cube) && find(C.begin(), C.end(), l) == C.end()
+				&& V.count(l) == 0 && Vdual.count(l) == 0) { 
 			++counter;
-			p = l;
 		}
 	}
 
 	return counter;
+}
+
+
+Cube CubicalGridComplex::unpairedFace(const Cube& cube, const vector<Cube>& L) {
+	for (const Cube& l : L) { 
+		if (l.isFaceOf(cube) && find(C.begin(), C.end(), l) == C.end()
+				&& V.count(l) == 0 && Vdual.count(l) == 0) { 
+			return l;
+		}
+	}
+	
+	return cube;
 }
