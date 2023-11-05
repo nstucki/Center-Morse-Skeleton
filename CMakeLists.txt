@@ -14,6 +14,7 @@ add_executable(DMT
     src/main.cpp
 	src/utils.cpp
     src/data_structures.cpp
+    src/enumerators.cpp
 )
 
 set_target_properties(DMT PROPERTIES

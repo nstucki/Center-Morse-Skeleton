@@ -3,16 +3,22 @@
 #include "config.h"
 
 #include <vector>
-#include <queue>
 
 using namespace std;
+
+
+
+class MorseComplex;
 
 
 
 class Cube {
 	public:
 	Cube();
-	Cube(value_t birth, index_t x, index_t y, index_t z, uint8_t type, uint8_t dim);
+	Cube(const value_t& birth, const index_t& x, const index_t& y, const index_t& z, 
+			const uint8_t& type, const uint8_t& dim);
+	Cube(const MorseComplex& mc, const index_t& x, const index_t& y, const index_t& z, 
+			const uint8_t& type, const uint8_t& dim);
 	Cube(const Cube& other);
 	Cube& operator=(const Cube& rhs);
 	bool operator==(const Cube& rhs) const;
@@ -62,19 +68,23 @@ struct ReverseOrder {
 
 
 
-class CubicalGridComplex {
+class MorseComplex {
 	public:
-	CubicalGridComplex(const vector<value_t>&& image, const vector<index_t>&& shape);
-	~CubicalGridComplex();
+	MorseComplex(const vector<value_t>&& image, const vector<index_t>&& shape);
+	~MorseComplex();
 	value_t getValue(const index_t& x, const index_t& y, const index_t& z) const;
 	value_t getBirth(const index_t& x, const index_t& y, const index_t& z, 
 						const uint8_t& type, const uint8_t& dim) const;
 	Cube getCube(const index_t& x, const index_t& y, const index_t& z) const;
+	vector<Cube> getFaces(const Cube& cube);
 	void perturbImage();
 	void processLowerStars();
+	void extractMorseComplex();
 	void checkGradientVectorfield() const;
 	void printGradientVectorfield() const;
 	void printGradientVectorfieldImage() const;
+	void printGradientVectorfieldDim(uint8_t dim) const;
+	void printFaces();
 	void printImage() const;
 
 	private:
@@ -88,8 +98,9 @@ class CubicalGridComplex {
 	Cube unpairedFace(const Cube& cube, const vector<Cube>& L);
 	value_t*** grid;
 	const vector<index_t> shape;
-	bool perturbed;
-	vector<Cube> C;
+	vector<vector<Cube>> C;
 	unordered_map<Cube, Cube, Cube::Hash> V;
 	unordered_map<Cube, Cube, Cube::Hash> Vdual;
+	unordered_map<Cube, vector<Cube>, Cube::Hash> faces;
+	bool perturbed;
 };

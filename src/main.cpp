@@ -74,12 +74,14 @@ int main(int argc, char** argv) {
     cout << ") ... " << duration.count() << " ms" << endl << endl;
 #endif
 
-    CubicalGridComplex cgc(std::move(input), std::move(shape));
+    MorseComplex mc(std::move(input), std::move(shape));
 
-    cgc.printImage(); cout << endl;
-    cgc.perturbImage();
-    cgc.printImage(); cout << endl;
-    cgc.processLowerStars();
-    cgc.printGradientVectorfieldImage(); cout << endl;
-    cgc.checkGradientVectorfield();
+    mc.printImage(); cout << endl;
+    mc.perturbImage();
+    mc.printImage(); cout << endl;
+    mc.processLowerStars();
+    mc.printGradientVectorfieldImage(); cout << endl;
+    mc.checkGradientVectorfield();
+    mc.extractMorseComplex();
+    mc.printFaces();
 }
