@@ -427,15 +427,52 @@ void MorseComplex::printGradientVectorfieldImage() const {
 
 void MorseComplex::printGradientVectorfieldDim(uint8_t dim) const {
 	Cube cube;
+	unordered_map<Cube, index_t, Cube::Hash> paired;
+	index_t counter;
 	for (size_t y = 0; y < 2*shape[1]-1; ++y) {
 		for (size_t x = 0; x < 2*shape[0]-1; ++x) {
 			for (size_t z = 0; z < 2*shape[2]-1; ++z) {
 				cube = getCube(x, y, z);
+				if (cube.dim != dim && cube.dim != dim-1) { 
+					cout << "xx ";
+					continue;
+				}
 				if (find(C[cube.dim].begin(), C[cube.dim].end(), cube) != C[cube.dim].end() &&
-					(cube.dim == dim || cube.dim == dim-1)) { cout << "c "; }
-				else if (V.count(cube) != 0 && cube.dim == dim-1) { cout << "p "; } 
-				else if (Vdual.count(cube) != 0 && cube.dim == dim) { cout << "q "; }
-				else { cout << "x "; }
+					(cube.dim == dim)) { cout << "CC "; }
+				else if (find(C[cube.dim].begin(), C[cube.dim].end(), cube) != C[cube.dim].end() &&
+					(cube.dim == dim-1)) { cout << "cc "; }
+				else {
+					auto it = paired.find(cube);
+					if (it != paired.end()) {
+						if (it-> second < 10) {
+							cout << " " << it->second << " ";
+						} else { cout << it->second << " "; }
+						continue;
+					}
+					if (cube.dim == dim-1) {
+						auto it = V.find(cube);
+						if (it != V.end()) {
+							if (counter < 10) {
+								cout << " " << counter << " ";
+							} else { cout << counter << " "; }
+							paired.emplace(it->second, counter);
+							++counter;
+							continue;
+						}
+					}
+					else if (cube.dim == dim) {
+						auto it = Vdual.find(cube);
+						if (it != Vdual.end()) {
+							if (counter < 10) {
+								cout << " " << counter << " ";
+							} else { cout << counter << " "; }
+							 paired.emplace(it->second, counter);
+							 ++counter;
+							 continue;
+						}
+					}
+					cout << "XX ";
+				}
 			}
 			cout << "  ";
 		}
