@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <queue>
+#include <set>
 
 using namespace std;
 
@@ -283,7 +284,7 @@ void MorseComplex::processLowerStars() {
 				else {
 					sort(L.begin(), L.end());
 					alpha = L[1];
-					V.emplace(L[0], alpha); Vdual.emplace(alpha, L[0]);
+					V.emplace(L[0], alpha); coV.emplace(alpha, L[0]);
 					L.erase(L.begin(), L.begin()+2);
 					
 					for (const Cube& beta : L) {
@@ -297,7 +298,7 @@ void MorseComplex::processLowerStars() {
 							if (numUnpairedFaces(alpha, L) == 0) { PQzero.push(alpha); }
 							else {	
 								pair = unpairedFace(alpha, L);
-								V.emplace(pair, alpha); Vdual.emplace(alpha, pair);
+								V.emplace(pair, alpha); coV.emplace(alpha, pair);
 								removeFromPQ(pair, PQzero);
 								for (const Cube& beta : L) {
 									if ((alpha.isFaceOf(beta) || pair.isFaceOf(beta)) 
@@ -365,6 +366,122 @@ void MorseComplex::extractMorseComplex() {
 }
 
 
+void MorseComplex::traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow) const {
+	BoundaryEnumerator enumerator(*this);
+	priority_queue<Cube> queue;
+	set<Cube> seen;
+	queue.push(s);
+	seen.insert(s);
+
+	Cube a;
+	Cube b;
+	Cube c;
+	while (!queue.empty()) {
+		a = queue.top(); queue.pop();
+		enumerator.setBoundaryEnumerator(a);
+		while (enumerator.hasNextFace()) {
+			b = enumerator.nextFace;
+			c = a;
+			if (find(C[b.dim].begin(), C[b.dim].end(), b) != C[b.dim].end()) { c = b; }
+			else {
+				auto it = V.find(b);
+				if (it != V.end()) { c = it->second; }
+			}
+			if (c != a) {
+				flow.push_back(tuple(a, b, c));
+				if (c != b) {
+					auto it = seen.find(c);
+					if (it == seen.end()) {
+						queue.push(c);
+						seen.insert(c);
+					}
+				}
+			}
+		}
+	}
+}
+
+
+void MorseComplex::traverseCoFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow) const {
+	CoboundaryEnumerator enumerator(*this);
+	priority_queue<Cube> queue;
+	set<Cube> seen;
+	queue.push(s);
+	seen.insert(s);
+
+	Cube a;
+	Cube b;
+	Cube c;
+	while (!queue.empty()) {
+		a = queue.top(); queue.pop();
+		enumerator.setCoboundaryEnumerator(a);
+		while (enumerator.hasNextCoface()) {
+			b = enumerator.nextCoface;
+			c = a;
+			if (find(C[b.dim].begin(), C[b.dim].end(), b) != C[b.dim].end()) { c = b; }
+			else {
+				auto it = coV.find(b);
+				if (it != coV.end()) { c = it->second; }
+			}
+			if (c != a) {
+				flow.push_back(tuple(a, b, c));
+				if (c != b) {
+					auto it = seen.find(c);
+					if (it == seen.end()) {
+						queue.push(c);
+						seen.insert(c);
+					}
+				}
+			}
+		}
+	}
+}
+
+
+vector<pair<Cube, uint8_t>> MorseComplex::getMorseBoundary(const Cube& s) const {
+	unordered_map<Cube, uint8_t, Cube::Hash> count;
+	count.emplace(s, 1);
+	set<Cube> boundary;
+
+	vector<tuple<Cube, Cube,Cube>> flow;
+	traverseFlow(s, flow);
+
+	uint8_t n;
+	for (const tuple<Cube, Cube, Cube>& t : flow) {
+		auto it = count.find(get<2>(t));
+		if (it != count.end()) { n = count[get<0>(t)] + it->second; }
+		else { n = count[get<0>(t)]; }
+		if (n > 3) { count.insert_or_assign(get<2>(t), n%2 + 2); }
+		else { count.insert_or_assign(get<2>(t), n); }
+		if (get<1>(t) == get<2>(t)) { boundary.insert(get<2>(t)); }
+	}
+
+	vector<pair<Cube, uint8_t>> result;
+	for (const Cube& b : boundary) {
+		result.push_back(pair(b, count[b]));
+	}
+
+	return result;
+}
+
+
+void MorseComplex::getConnections(const Cube&s, const Cube& t, vector<tuple<Cube, Cube, Cube>>& connections) const {
+	set<Cube> active;
+	active.insert(t);
+
+	vector<tuple<Cube, Cube, Cube>> flow;
+	traverseCoFlow(t, flow);
+	for (const tuple<Cube, Cube, Cube>& t : flow) { active.insert(get<2>(t)); }
+
+	flow.clear();
+	traverseFlow(s, flow);
+	for (const tuple<Cube, Cube, Cube>& t : flow) {
+		auto it = active.find(get<1>(t));
+		if (it != active.end()) { connections.push_back(t); }
+	}
+}
+
+
 void MorseComplex::checkGradientVectorfield() const {
 	size_t counter;
 	value_t birth;
@@ -380,7 +497,7 @@ void MorseComplex::checkGradientVectorfield() const {
 						cube = Cube(birth, x, y, z, type, dim);
 						counter = 0;
 						if (V.count(cube) != 0) { ++counter; }
-						if (Vdual.count(cube) != 0) { ++counter; }
+						if (coV.count(cube) != 0) { ++counter; }
 						if (find(C[dim].begin(), C[dim].end(), cube) != C[dim].end()) { ++counter; }
 						if (counter != 1) { cube.print(); cout << " occurs " << counter << " times!" << endl; }
 					}
@@ -415,7 +532,7 @@ void MorseComplex::printGradientVectorfieldImage() const {
 				cube = getCube(x, y, z);
 				if (find(C[cube.dim].begin(), C[cube.dim].end(), cube) != C[cube.dim].end()) { cout << "c "; }
 				else if (V.count(cube) != 0) { cout << "p "; } 
-				else if (Vdual.count(cube) != 0) { cout << "q "; }
+				else if (coV.count(cube) != 0) { cout << "q "; }
 				else { cout << "  "; }
 			}
 			cout << "  ";
@@ -428,7 +545,7 @@ void MorseComplex::printGradientVectorfieldImage() const {
 void MorseComplex::printGradientVectorfieldDim(uint8_t dim) const {
 	Cube cube;
 	unordered_map<Cube, index_t, Cube::Hash> paired;
-	index_t counter;
+	index_t counter = 0;
 	for (size_t y = 0; y < 2*shape[1]-1; ++y) {
 		for (size_t x = 0; x < 2*shape[0]-1; ++x) {
 			for (size_t z = 0; z < 2*shape[2]-1; ++z) {
@@ -461,8 +578,8 @@ void MorseComplex::printGradientVectorfieldDim(uint8_t dim) const {
 						}
 					}
 					else if (cube.dim == dim) {
-						auto it = Vdual.find(cube);
-						if (it != Vdual.end()) {
+						auto it = coV.find(cube);
+						if (it != coV.end()) {
 							if (counter < 10) {
 								cout << " " << counter << " ";
 							} else { cout << counter << " "; }
@@ -486,13 +603,119 @@ void MorseComplex::printFaces() {
 		cout << "dim " << unsigned(dim) << ":" << endl;
 		printGradientVectorfieldDim(dim);
 		for (const Cube& c : C[dim]) {
-			cout << "cube: "; c.print(); cout << endl;
+			cout << endl << "cube: "; c.print(); cout << endl;
 			cout << "faces: ";
 			for (const Cube& face : faces[c]) {
 				face.print(); cout << " ";
 			}
 			cout << endl;
 		}
+	}
+}
+
+
+void MorseComplex::printFlow(const Cube& s) const {
+	vector<tuple<Cube, Cube, Cube>> flow;
+	traverseFlow(s, flow);
+	bool printed;
+
+	for (size_t y = 0; y < 2*shape[1]-1; ++y) {
+		for (size_t x = 0; x < 2*shape[0]-1; ++x) {
+			for (size_t z = 0; z < 2*shape[2]-1; ++z) {
+				printed = false;
+				Cube c = getCube(x, y, z);
+				if(c == s) { cout << "CC "; }
+				else {
+					for (size_t i = 0; i < flow.size(); ++i) {
+						if(c == get<1>(flow[i])) { 
+							if(i < 10) { cout << " " << i << " ";}
+							else { cout << i << " "; }
+							printed = true;
+							break;
+						} else if(c == get<2>(flow[i])) { 
+							if(i < 10) { cout << " " << i << " ";}
+							else { cout << i << " "; }
+							printed = true;
+							break;
+						}
+					}
+					if (!printed) { cout << "xx ";}
+				}
+			}
+			cout << "  ";
+		}
+		cout << endl;
+	}
+}
+
+
+void MorseComplex::printCoFlow(const Cube& s) const {
+	vector<tuple<Cube, Cube, Cube>> flow;
+	traverseCoFlow(s, flow);
+	bool printed;
+
+	for (size_t y = 0; y < 2*shape[1]-1; ++y) {
+		for (size_t x = 0; x < 2*shape[0]-1; ++x) {
+			for (size_t z = 0; z < 2*shape[2]-1; ++z) {
+				printed = false;
+				Cube c = getCube(x, y, z);
+				if(c == s) { cout << "CC "; }
+				else {
+					for (size_t i = 0; i < flow.size(); ++i) {
+						if(c == get<1>(flow[i])) { 
+							if(i < 10) { cout << " " << i << " ";}
+							else { cout << i << " "; }
+							printed = true;
+							break;
+						} else if(c == get<2>(flow[i])) { 
+							if(i < 10) { cout << " " << i << " ";}
+							else { cout << i << " "; }
+							printed = true;
+							break;
+						}
+					}
+					if (!printed) { cout << "xx ";}
+				}
+			}
+			cout << "  ";
+		}
+		cout << endl;
+	}
+}
+
+
+void MorseComplex::printConnections(const Cube& s, const Cube& t) const {
+	vector<tuple<Cube, Cube, Cube>> connections;
+	getConnections(s, t, connections);
+	bool printed;
+
+	for (size_t y = 0; y < 2*shape[1]-1; ++y) {
+		for (size_t x = 0; x < 2*shape[0]-1; ++x) {
+			for (size_t z = 0; z < 2*shape[2]-1; ++z) {
+				printed = false;
+				Cube c = getCube(x, y, z);
+				if(c == s) { cout << "CC "; }
+				else if(c == t) { cout << "cc "; }
+				else {
+					for (size_t i = 0; i < connections.size(); ++i) {
+						if(c == get<1>(connections[i])) { 
+							if(i < 10) { cout << " " << i << " ";}
+							else { cout << i << " "; }
+							printed = true;
+							break;
+						} else if(c == get<2>(connections[i])) { 
+							if(i < 10) { cout << " " << i << " ";}
+							else { cout << i << " "; }
+							printed = true;
+							break;
+						}
+					}
+					if (!printed) { cout << "xx ";}
+				}
+			}
+			cout << "  ";
+		}
+		cout << endl;
 	}
 }
 
@@ -623,7 +846,7 @@ size_t MorseComplex::numUnpairedFaces(const Cube& cube, const vector<Cube>& L) {
 	size_t counter = 0;
 	for (const Cube& l : L) { 
 		if (l.isFaceOf(cube) && find(C[l.dim].begin(), C[l.dim].end(), l) == C[l.dim].end()
-				&& V.count(l) == 0 && Vdual.count(l) == 0) { 
+				&& V.count(l) == 0 && coV.count(l) == 0) { 
 			++counter;
 		}
 	}
@@ -635,7 +858,7 @@ size_t MorseComplex::numUnpairedFaces(const Cube& cube, const vector<Cube>& L) {
 Cube MorseComplex::unpairedFace(const Cube& cube, const vector<Cube>& L) {
 	for (const Cube& l : L) { 
 		if (l.isFaceOf(cube) && find(C[l.dim].begin(), C[l.dim].end(), l) == C[l.dim].end()
-				&& V.count(l) == 0 && Vdual.count(l) == 0) { 
+				&& V.count(l) == 0 && coV.count(l) == 0) { 
 			return l;
 		}
 	}

@@ -80,12 +80,23 @@ class MorseComplex {
 	void perturbImage();
 	void processLowerStars();
 	void extractMorseComplex();
+	void traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow) const;
+	void traverseCoFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow) const;
+	vector<pair<Cube, uint8_t>> getMorseBoundary(const Cube& s) const;
+	void getConnections(const Cube&s, const Cube& t, vector<tuple<Cube, Cube, Cube>>& connections) const;
 	void checkGradientVectorfield() const;
 	void printGradientVectorfield() const;
 	void printGradientVectorfieldImage() const;
 	void printGradientVectorfieldDim(uint8_t dim) const;
 	void printFaces();
+	void printFlow(const Cube& s) const;
+	void printCoFlow(const Cube& s) const;
+	void printConnections(const Cube& s, const Cube& t) const;
 	void printImage() const;
+	vector<vector<Cube>> C;
+	unordered_map<Cube, Cube, Cube::Hash> V;
+	unordered_map<Cube, Cube, Cube::Hash> coV;
+	unordered_map<Cube, vector<Cube>, Cube::Hash> faces;
 
 	private:
 	value_t*** allocateMemory() const;
@@ -98,9 +109,5 @@ class MorseComplex {
 	Cube unpairedFace(const Cube& cube, const vector<Cube>& L);
 	value_t*** grid;
 	const vector<index_t> shape;
-	vector<vector<Cube>> C;
-	unordered_map<Cube, Cube, Cube::Hash> V;
-	unordered_map<Cube, Cube, Cube::Hash> Vdual;
-	unordered_map<Cube, vector<Cube>, Cube::Hash> faces;
 	bool perturbed;
 };

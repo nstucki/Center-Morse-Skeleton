@@ -17,3 +17,19 @@ class BoundaryEnumerator {
 	Cube cube;
 	uint8_t position;
 };
+
+
+
+class CoboundaryEnumerator {
+	public:
+	Cube nextCoface;
+	
+	CoboundaryEnumerator(const MorseComplex& mc);
+	void setCoboundaryEnumerator(const Cube& cube);
+	bool hasNextCoface();
+
+	private:
+	const MorseComplex& mc;
+	Cube cube;
+	uint8_t position;
+};
