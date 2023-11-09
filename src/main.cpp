@@ -75,59 +75,60 @@ int main(int argc, char** argv) {
 #endif
 
     MorseComplex mc(std::move(input), std::move(shape));
-
-    mc.printImage(); cout << endl;
+    if (print) { mc.printImage(); cout << endl; }
 
     mc.perturbImage();
-    mc.printImage(); cout << endl;
+    if (print) { mc.printImage(); cout << endl; }
 
     mc.processLowerStars();
     mc.checkGradientVectorfield();
-    mc.printGradientVectorfieldImage(); cout << endl;
+    if (print) {
+        cout << "critical cubes: " << endl;
+        for (uint8_t dim = 0; dim < 4; ++dim) {
+            for (const Cube& c : mc.C[dim]) {
+                c.print(); cout << endl;
+            }
+        }
+        cout << endl;
+        mc.printGradientVectorfieldImage(); cout << endl;
+    }
     
     mc.extractMorseComplex();
-    mc.printFaces(); cout << endl;
+    if (print) { mc.printFaces(); cout << endl; }
 
-    Cube s = mc.C[2][5];
+    Cube s = mc.C[2][1];
     vector<tuple<Cube,Cube,Cube>> flow;
     mc.traverseFlow(s, flow);
-
-    mc.printGradientVectorfieldDim(s.dim); cout << endl;
-    cout << "critical cube s: "; s.print(); cout << endl;
-    cout << "flow: " << endl;
-    for (tuple<Cube, Cube, Cube>& f : flow) {
-        get<0>(f).print(); cout << " , "; get<1>(f).print(); cout << " , "; get<2>(f).print(); cout << endl;
+    if (print) {
+        mc.printGradientVectorfieldDim(s.dim); cout << endl; 
+        cout << "critical cube s: "; s.print(); cout << endl;
+        cout << "flow: " << endl; 
+        mc.printFlow(s); cout << endl;
     }
-    cout << endl;
-    mc.printFlow(s); cout << endl;
 
     vector<pair<Cube, uint8_t>> boundary = mc.getMorseBoundary(s);
-
-    cout  << "boundary: " << endl;
-    for (const pair<Cube, uint8_t>& b : boundary) {
-        get<0>(b).print(); cout << " " << unsigned(get<1>(b)) << endl;
+    if (print) {
+        cout  << "boundary: " << endl;
+        for (const pair<Cube, uint8_t>& b : boundary) {
+            get<0>(b).print(); cout << " " << unsigned(get<1>(b)) << endl;
+        }
+        cout << endl;
     }
-    cout << endl;
 
-    Cube t = mc.C[1][4];
+    Cube t = mc.C[1][0];
     flow.clear();
     mc.traverseCoFlow(t, flow);
 
-    cout << "critical cube t: "; t.print(); cout << endl;
-    cout << "coflow: " << endl;
-    for (tuple<Cube, Cube, Cube>& f : flow) {
-        get<0>(f).print(); cout << " , ";get<1>(f).print(); cout << " , "; get<2>(f).print(); cout << endl;
+    if (print) {
+        cout << "critical cube t: "; t.print(); cout << endl;
+        cout << "coflow: " << endl; mc.printCoFlow(t); cout << endl;
     }
-    cout << endl;
-    mc.printCoFlow(t); cout << endl;
+    
 
     vector<tuple<Cube,Cube,Cube>> connections;
     mc.getConnections(s, t, connections);
-
-    cout << "connections from s to t: " << endl;
-    for (tuple<Cube, Cube, Cube>& c : connections) {
-        get<0>(c).print(); cout << " , "; get<1>(c).print(); cout << " , "; get<2>(c).print(); cout << endl;
+    if (print) { 
+        cout << "connections from s to t: " << endl; 
+        mc.printConnections(s, t); cout << endl;
     }
-    cout << endl;
-    mc.printConnections(s, t);
 }

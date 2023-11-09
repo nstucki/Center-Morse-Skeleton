@@ -278,7 +278,6 @@ void MorseComplex::processLowerStars() {
 	for (index_t x = 0; x < shape[0]; ++x) {
 		for (index_t y = 0; y < shape[1]; ++y) {
 			for (index_t z = 0; z < shape[2]; ++z) {
-
 				L = getLowerStar(x, y, z);
 				if (L.size() == 1) { C[0].push_back(L[0]); }
 				else {
@@ -526,8 +525,8 @@ void MorseComplex::printGradientVectorfield() const {
 
 void MorseComplex::printGradientVectorfieldImage() const {
 	Cube cube;
-	for (size_t y = 0; y < 2*shape[1]-1; ++y) {
-		for (size_t x = 0; x < 2*shape[0]-1; ++x) {
+	for (size_t x = 0; x < 2*shape[0]-1; ++x) {
+		for (size_t y = 0; y < 2*shape[1]-1; ++y) {
 			for (size_t z = 0; z < 2*shape[2]-1; ++z) {
 				cube = getCube(x, y, z);
 				if (find(C[cube.dim].begin(), C[cube.dim].end(), cube) != C[cube.dim].end()) { cout << "c "; }
@@ -535,7 +534,7 @@ void MorseComplex::printGradientVectorfieldImage() const {
 				else if (coV.count(cube) != 0) { cout << "q "; }
 				else { cout << "  "; }
 			}
-			cout << "  ";
+			cout << endl;
 		}
 		cout << endl;
 	}
@@ -546,8 +545,8 @@ void MorseComplex::printGradientVectorfieldDim(uint8_t dim) const {
 	Cube cube;
 	unordered_map<Cube, index_t, Cube::Hash> paired;
 	index_t counter = 0;
-	for (size_t y = 0; y < 2*shape[1]-1; ++y) {
-		for (size_t x = 0; x < 2*shape[0]-1; ++x) {
+	for (size_t x = 0; x < 2*shape[0]-1; ++x) {
+		for (size_t y = 0; y < 2*shape[1]-1; ++y) {
 			for (size_t z = 0; z < 2*shape[2]-1; ++z) {
 				cube = getCube(x, y, z);
 				if (cube.dim != dim && cube.dim != dim-1) { 
@@ -591,7 +590,7 @@ void MorseComplex::printGradientVectorfieldDim(uint8_t dim) const {
 					cout << "XX ";
 				}
 			}
-			cout << "  ";
+			cout << endl;
 		}
 		cout << endl;
 	}
@@ -601,9 +600,8 @@ void MorseComplex::printGradientVectorfieldDim(uint8_t dim) const {
 void MorseComplex::printFaces() {
 	for (uint8_t dim = 0; dim < 4; ++dim) {
 		cout << "dim " << unsigned(dim) << ":" << endl;
-		printGradientVectorfieldDim(dim);
 		for (const Cube& c : C[dim]) {
-			cout << endl << "cube: "; c.print(); cout << endl;
+			cout << "cube: "; c.print(); cout << endl;
 			cout << "faces: ";
 			for (const Cube& face : faces[c]) {
 				face.print(); cout << " ";
@@ -619,8 +617,8 @@ void MorseComplex::printFlow(const Cube& s) const {
 	traverseFlow(s, flow);
 	bool printed;
 
-	for (size_t y = 0; y < 2*shape[1]-1; ++y) {
-		for (size_t x = 0; x < 2*shape[0]-1; ++x) {
+	for (size_t x = 0; x < 2*shape[0]-1; ++x) {
+		for (size_t y = 0; y < 2*shape[1]-1; ++y) {
 			for (size_t z = 0; z < 2*shape[2]-1; ++z) {
 				printed = false;
 				Cube c = getCube(x, y, z);
@@ -642,7 +640,7 @@ void MorseComplex::printFlow(const Cube& s) const {
 					if (!printed) { cout << "xx ";}
 				}
 			}
-			cout << "  ";
+			cout << endl;
 		}
 		cout << endl;
 	}
@@ -654,8 +652,8 @@ void MorseComplex::printCoFlow(const Cube& s) const {
 	traverseCoFlow(s, flow);
 	bool printed;
 
-	for (size_t y = 0; y < 2*shape[1]-1; ++y) {
-		for (size_t x = 0; x < 2*shape[0]-1; ++x) {
+	for (size_t x = 0; x < 2*shape[0]-1; ++x) {
+		for (size_t y = 0; y < 2*shape[1]-1; ++y) {
 			for (size_t z = 0; z < 2*shape[2]-1; ++z) {
 				printed = false;
 				Cube c = getCube(x, y, z);
@@ -677,7 +675,7 @@ void MorseComplex::printCoFlow(const Cube& s) const {
 					if (!printed) { cout << "xx ";}
 				}
 			}
-			cout << "  ";
+			cout << endl;
 		}
 		cout << endl;
 	}
@@ -689,8 +687,8 @@ void MorseComplex::printConnections(const Cube& s, const Cube& t) const {
 	getConnections(s, t, connections);
 	bool printed;
 
-	for (size_t y = 0; y < 2*shape[1]-1; ++y) {
-		for (size_t x = 0; x < 2*shape[0]-1; ++x) {
+	for (size_t x = 0; x < 2*shape[0]-1; ++x) {
+		for (size_t y = 0; y < 2*shape[1]-1; ++y) {
 			for (size_t z = 0; z < 2*shape[2]-1; ++z) {
 				printed = false;
 				Cube c = getCube(x, y, z);
@@ -713,7 +711,7 @@ void MorseComplex::printConnections(const Cube& s, const Cube& t) const {
 					if (!printed) { cout << "xx ";}
 				}
 			}
-			cout << "  ";
+			cout << endl;
 		}
 		cout << endl;
 	}
@@ -722,14 +720,14 @@ void MorseComplex::printConnections(const Cube& s, const Cube& t) const {
 
 void MorseComplex::printImage() const {
     value_t value;
-    for (size_t y = 0; y < shape[1]; ++y) {
-		for (size_t x = 0; x < shape[0]; ++x) {
+    for (size_t x = 0; x < shape[0]; ++x) {
+		for (size_t y = 0; y < shape[1]; ++y) {
             for (size_t z = 0; z < shape[2]; ++z) {
                 value = getValue(x, y, z);
                 if (value < 10) { cout << " " << fixed << setprecision(3) << value << " "; }
 				else { cout << fixed << setprecision(3) << value << " "; }            
             }
-            cout << "  ";
+            cout << endl;
         }
         cout << endl;
     }
