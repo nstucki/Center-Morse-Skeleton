@@ -505,19 +505,22 @@ void MorseComplex::extractMorseSkeleton(const value_t& threshold) {
 
 
 void MorseComplex::cancelPair(const Cube&s, const Cube& t) {
-	C[s.dim].erase(remove(C[s.dim].begin(), C[s.dim].end(), s), C[s.dim].end());
-	C[t.dim].erase(remove(C[t.dim].begin(), C[t.dim].end(), t), C[t.dim].end());
-
 	vector<tuple<Cube, Cube, Cube>> connection;
 	getConnections(s, t, connection);
 
-	for (tuple<Cube, Cube, Cube> t : connection) {
-		auto it = V.find(get<1>(t));
-		if (it != V.end()) { V.erase(it); }
-		else { cerr << "key not found!"; }
-		it = coV.find(get<2>(t));
-		if (it != coV.end()) { coV.erase(it); }
-		else { cerr << "key not found!"; }
+	C[s.dim].erase(remove(C[s.dim].begin(), C[s.dim].end(), s), C[s.dim].end());
+	C[t.dim].erase(remove(C[t.dim].begin(), C[t.dim].end(), t), C[t.dim].end());
+	for (tuple<Cube, Cube, Cube> c : connection) {
+		V.emplace(get<1>(c), get<0>(c));
+		coV.emplace(get<0>(c), get<1>(c));
+		if (get<1>(c) != get<2>(c)) {
+			auto it = V.find(get<1>(c));
+			if (it != V.end()) { V.erase(it); }
+			else { cerr << "key not found!" << endl; }
+			it = coV.find(get<2>(c));
+			if (it != coV.end()) { coV.erase(it); }
+			else { cerr << "key not found!" << endl; }
+		}
 	}
 }
 
@@ -531,14 +534,18 @@ void MorseComplex::cancelPairs(const value_t& threshold) {
 			for (const Cube& s : C[dim]) {
 				if (s.birth > threshold) { continue; }
 				vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
+
 				cancelable.clear();
 				for (const pair<Cube, uint8_t> b : boundary) { if (get<1>(b) == 1) { cancelable.push_back(get<0>(b)); } }
 				if (cancelable.size() == 0) { continue; }
 				sort(cancelable.begin(), cancelable.end());
+
 				cancelPair(s, cancelable.back());
+
 				canceled = true;
 				break;
 			}
+			if (canceled) { break; }
 		}
 	}
 }
@@ -571,7 +578,7 @@ void MorseComplex::checkV() const {
 
 
 void MorseComplex::printC() const {
-	cout << "critical cubes: " << endl;
+	cout << "C: " << endl;
 	for (uint8_t dim = 0; dim < 4; ++dim) {
 		for (const Cube& c : C[dim]) {
 			c.print(); cout << endl;
