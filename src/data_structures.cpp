@@ -6,7 +6,6 @@
 #include <iomanip>
 #include <algorithm>
 #include <queue>
-#include <set>
 
 using namespace std;
 
@@ -481,7 +480,71 @@ void MorseComplex::getConnections(const Cube&s, const Cube& t, vector<tuple<Cube
 }
 
 
-void MorseComplex::checkGradientVectorfield() const {
+void MorseComplex::extractMorseSkeleton(const value_t& threshold) {
+	vector<tuple<Cube, Cube, Cube>> flow;
+	for (uint8_t dim = 0; dim < 4; ++dim) {
+		for (const Cube& c : C[dim]) {
+			if (c.birth > threshold) { continue; }
+			flow.clear();
+			traverseFlow(c, flow);
+			for (const tuple<Cube, Cube, Cube>& t : flow) {
+				if (get<1>(t) != get<2>(t)) { morseSkeleton.insert(get<2>(t)); }
+			}
+		}
+	}
+
+	vector<vector<index_t>> pixels;
+	for (const Cube& c : morseSkeleton) {
+		pixels = c.getVertices();
+		for (const vector<index_t>& p : pixels) {
+			morseSkeletonPixels.insert(p);
+		}
+
+	}
+}
+
+
+void MorseComplex::cancelPair(const Cube&s, const Cube& t) {
+	C[s.dim].erase(remove(C[s.dim].begin(), C[s.dim].end(), s), C[s.dim].end());
+	C[t.dim].erase(remove(C[t.dim].begin(), C[t.dim].end(), t), C[t.dim].end());
+
+	vector<tuple<Cube, Cube, Cube>> connection;
+	getConnections(s, t, connection);
+
+	for (tuple<Cube, Cube, Cube> t : connection) {
+		auto it = V.find(get<1>(t));
+		if (it != V.end()) { V.erase(it); }
+		else { cerr << "key not found!"; }
+		it = coV.find(get<2>(t));
+		if (it != coV.end()) { coV.erase(it); }
+		else { cerr << "key not found!"; }
+	}
+}
+
+
+void MorseComplex::cancelPairs(const value_t& threshold) {
+	vector<Cube> cancelable;
+	bool canceled = true;
+	while ((C[0].size() != 0 || C[1].size() != 0 || C[2].size() != 0 || C[3].size() != 0) && canceled) {
+		canceled = false;
+		for (uint8_t dim = 4; dim-- > 0;) {
+			for (const Cube& s : C[dim]) {
+				if (s.birth > threshold) { continue; }
+				vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
+				cancelable.clear();
+				for (const pair<Cube, uint8_t> b : boundary) { if (get<1>(b) == 1) { cancelable.push_back(get<0>(b)); } }
+				if (cancelable.size() == 0) { continue; }
+				sort(cancelable.begin(), cancelable.end());
+				cancelPair(s, cancelable.back());
+				canceled = true;
+				break;
+			}
+		}
+	}
+}
+
+
+void MorseComplex::checkV() const {
 	size_t counter;
 	value_t birth;
 	Cube cube;
@@ -507,7 +570,17 @@ void MorseComplex::checkGradientVectorfield() const {
 }
 
 
-void MorseComplex::printGradientVectorfield() const {
+void MorseComplex::printC() const {
+	cout << "critical cubes: " << endl;
+	for (uint8_t dim = 0; dim < 4; ++dim) {
+		for (const Cube& c : C[dim]) {
+			c.print(); cout << endl;
+		}
+	}
+}
+
+
+void MorseComplex::printV() const {
 	cout << "critical: " << endl;
 	for (uint8_t dim = 0; dim < 4; ++dim) {
 		for (const Cube& c : C[dim]) {
@@ -523,7 +596,20 @@ void MorseComplex::printGradientVectorfield() const {
 }
 
 
-void MorseComplex::printGradientVectorfieldImage() const {
+void MorseComplex::printFaces() {
+	for (uint8_t dim = 0; dim < 4; ++dim) {
+		cout << "dim " << unsigned(dim) << ":" << endl;
+		for (const Cube& c : C[dim]) {
+			cout << "cube: "; c.print(); cout << endl;
+			cout << "faces: ";
+			for (const Cube& face : faces[c]) { face.print(); cout << " "; }
+			cout << endl;
+		}
+	}
+}
+
+
+void MorseComplex::plotV() const {
 	Cube cube;
 	for (size_t x = 0; x < 2*shape[0]-1; ++x) {
 		for (size_t y = 0; y < 2*shape[1]-1; ++y) {
@@ -541,7 +627,7 @@ void MorseComplex::printGradientVectorfieldImage() const {
 }
 
 
-void MorseComplex::printGradientVectorfieldDim(uint8_t dim) const {
+void MorseComplex::plotV(uint8_t dim) const {
 	Cube cube;
 	unordered_map<Cube, index_t, Cube::Hash> paired;
 	index_t counter = 0;
@@ -550,27 +636,27 @@ void MorseComplex::printGradientVectorfieldDim(uint8_t dim) const {
 			for (size_t z = 0; z < 2*shape[2]-1; ++z) {
 				cube = getCube(x, y, z);
 				if (cube.dim != dim && cube.dim != dim-1) { 
-					cout << "xx ";
+					cout << "    ";
 					continue;
 				}
 				if (find(C[cube.dim].begin(), C[cube.dim].end(), cube) != C[cube.dim].end() &&
-					(cube.dim == dim)) { cout << "CC "; }
+					(cube.dim == dim)) { cout << "CCC "; }
 				else if (find(C[cube.dim].begin(), C[cube.dim].end(), cube) != C[cube.dim].end() &&
-					(cube.dim == dim-1)) { cout << "cc "; }
+					(cube.dim == dim-1)) { cout << "ccc "; }
 				else {
 					auto it = paired.find(cube);
 					if (it != paired.end()) {
-						if (it-> second < 10) {
-							cout << " " << it->second << " ";
-						} else { cout << it->second << " "; }
+						if (it->second < 10) { cout << "  " << it->second << " "; }
+						else if (it->second < 100) { cout << " " << it->second << " "; }
+						else { cout << it->second << " "; }
 						continue;
 					}
 					if (cube.dim == dim-1) {
 						auto it = V.find(cube);
 						if (it != V.end()) {
-							if (counter < 10) {
-								cout << " " << counter << " ";
-							} else { cout << counter << " "; }
+							if (counter < 10) { cout << "  " << counter << " "; }
+							else if (counter < 100) { cout << " " << counter << " "; }
+							else { cout << counter << " "; }
 							paired.emplace(it->second, counter);
 							++counter;
 							continue;
@@ -579,15 +665,15 @@ void MorseComplex::printGradientVectorfieldDim(uint8_t dim) const {
 					else if (cube.dim == dim) {
 						auto it = coV.find(cube);
 						if (it != coV.end()) {
-							if (counter < 10) {
-								cout << " " << counter << " ";
-							} else { cout << counter << " "; }
-							 paired.emplace(it->second, counter);
-							 ++counter;
-							 continue;
+							if (counter < 10) { cout << "  " << counter << " "; }
+							else if (counter < 100) { cout << " " << counter << " "; }
+							else { cout << counter << " "; }
+							paired.emplace(it->second, counter);
+							++counter;
+							continue;
 						}
 					}
-					cout << "XX ";
+					cout << "xxx ";
 				}
 			}
 			cout << endl;
@@ -597,22 +683,7 @@ void MorseComplex::printGradientVectorfieldDim(uint8_t dim) const {
 }
 
 
-void MorseComplex::printFaces() {
-	for (uint8_t dim = 0; dim < 4; ++dim) {
-		cout << "dim " << unsigned(dim) << ":" << endl;
-		for (const Cube& c : C[dim]) {
-			cout << "cube: "; c.print(); cout << endl;
-			cout << "faces: ";
-			for (const Cube& face : faces[c]) {
-				face.print(); cout << " ";
-			}
-			cout << endl;
-		}
-	}
-}
-
-
-void MorseComplex::printFlow(const Cube& s) const {
+void MorseComplex::plotFlow(const Cube& s) const {
 	vector<tuple<Cube, Cube, Cube>> flow;
 	traverseFlow(s, flow);
 	bool printed;
@@ -647,7 +718,7 @@ void MorseComplex::printFlow(const Cube& s) const {
 }
 
 
-void MorseComplex::printCoFlow(const Cube& s) const {
+void MorseComplex::plotCoFlow(const Cube& s) const {
 	vector<tuple<Cube, Cube, Cube>> flow;
 	traverseCoFlow(s, flow);
 	bool printed;
@@ -682,7 +753,7 @@ void MorseComplex::printCoFlow(const Cube& s) const {
 }
 
 
-void MorseComplex::printConnections(const Cube& s, const Cube& t) const {
+void MorseComplex::plotConnections(const Cube& s, const Cube& t) const {
 	vector<tuple<Cube, Cube, Cube>> connections;
 	getConnections(s, t, connections);
 	bool printed;
@@ -718,7 +789,38 @@ void MorseComplex::printConnections(const Cube& s, const Cube& t) const {
 }
 
 
-void MorseComplex::printImage() const {
+void MorseComplex::plotMorseSkeleton() const {
+	for (size_t x = 0; x < 2*shape[0]-1; ++x) {
+		for (size_t y = 0; y < 2*shape[1]-1; ++y) {
+			for (size_t z = 0; z < 2*shape[2]-1; ++z) {
+				Cube c = getCube(x, y, z);
+				auto it = morseSkeleton.find(c);
+				if (it != morseSkeleton.end()) { cout << "S "; }
+				else { cout << "x ";}
+			}
+			cout << endl;
+		}
+		cout << endl;
+	}
+}
+
+
+void MorseComplex::plotMorseSkeletonPixels() const {
+	for (index_t x = 0; x < shape[0]; ++x) {
+		for (index_t y = 0; y < shape[1]; ++y) {
+			for (index_t z = 0; z < shape[2]; ++z) {
+				auto it = morseSkeletonPixels.find({x,y,z});
+				if (it != morseSkeletonPixels.end()) { cout << "S "; }
+				else { cout << "x ";}
+			}
+			cout << endl;
+		}
+		cout << endl;
+	}
+}
+
+
+void MorseComplex::plotImage() const {
     value_t value;
     for (size_t x = 0; x < shape[0]; ++x) {
 		for (size_t y = 0; y < shape[1]; ++y) {

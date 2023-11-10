@@ -3,6 +3,7 @@
 #include "config.h"
 
 #include <vector>
+#include <set>
 
 using namespace std;
 
@@ -84,19 +85,27 @@ class MorseComplex {
 	void traverseCoFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow) const;
 	vector<pair<Cube, uint8_t>> getMorseBoundary(const Cube& s) const;
 	void getConnections(const Cube&s, const Cube& t, vector<tuple<Cube, Cube, Cube>>& connections) const;
-	void checkGradientVectorfield() const;
-	void printGradientVectorfield() const;
-	void printGradientVectorfieldImage() const;
-	void printGradientVectorfieldDim(uint8_t dim) const;
+	void extractMorseSkeleton(const value_t& threshold);
+	void cancelPair(const Cube&s, const Cube& t);
+	void cancelPairs(const value_t& threshold);
+	void checkV() const;
+	void printC() const;
+	void printV() const;
 	void printFaces();
-	void printFlow(const Cube& s) const;
-	void printCoFlow(const Cube& s) const;
-	void printConnections(const Cube& s, const Cube& t) const;
-	void printImage() const;
+	void plotV() const;
+	void plotV(uint8_t dim) const;
+	void plotFlow(const Cube& s) const;
+	void plotCoFlow(const Cube& s) const;
+	void plotConnections(const Cube& s, const Cube& t) const;
+	void plotMorseSkeleton() const;
+	void plotMorseSkeletonPixels() const;
+	void plotImage() const;
 	vector<vector<Cube>> C;
 	unordered_map<Cube, Cube, Cube::Hash> V;
 	unordered_map<Cube, Cube, Cube::Hash> coV;
 	unordered_map<Cube, vector<Cube>, Cube::Hash> faces;
+	set<Cube> morseSkeleton;
+	set<vector<index_t>> morseSkeletonPixels;
 
 	private:
 	value_t*** allocateMemory() const;
