@@ -128,12 +128,21 @@ int main(int argc, char** argv) {
     // Cube t;
     // for (const pair<Cube, uint8_t>& b : boundary) { if (get<1>(b) == 1) { t = get<0>(b); break; } }
     // flow.clear();
-    // mc.traverseCoFlow(t, flow);
+    // mc.traverseCoflow(t, flow);
     // if (print) { cout << "critical cube t: "; t.print(); cout << endl; }
     // if (plot) { 
     //     cout << "coflow: " << endl; 
     //     mc.plotCoFlow(t); cout << endl;
-    // } else { cout << endl; }
+    // }
+
+    // vector<pair<Cube, uint8_t>> coboundary = mc.getMorseCoboundary(t);
+    // if (print) {
+    //     cout  << "coboundary: " << endl;
+    //     for (const pair<Cube, uint8_t>& c : coboundary) {
+    //         get<0>(c).print(); cout << " " << unsigned(get<1>(c)) << endl;
+    //     }
+    //     cout << endl;
+    // }
     
 
     // vector<tuple<Cube,Cube,Cube>> connections;
@@ -143,6 +152,7 @@ int main(int argc, char** argv) {
     //     for (const tuple<Cube, Cube, Cube>& c : connections) {
     //         get<0>(c).print(); get<1>(c).print(); get<2>(c).print(); cout << endl;
     //     }
+    //     cout << endl;
     // }
     // if (plot) {
     //     cout << "connections from s to t: " << endl; 
@@ -153,7 +163,7 @@ int main(int argc, char** argv) {
     // mc.checkV();
     // if (print) { mc.printC(); }
 
-    value_t delta = 20;
+    value_t delta = 1;
     mc.cancelPairsBelow(delta);
     mc.checkV();
     if (print) { mc.printC(); cout << endl; }

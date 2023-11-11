@@ -82,8 +82,9 @@ class MorseComplex {
 	void processLowerStars();
 	void extractMorseComplex();
 	void traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow) const;
-	void traverseCoFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow) const;
+	void traverseCoflow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow) const;
 	vector<pair<Cube, uint8_t>> getMorseBoundary(const Cube& s) const;
+	vector<pair<Cube, uint8_t>> getMorseCoboundary(const Cube& s) const;
 	void getConnections(const Cube&s, const Cube& t, vector<tuple<Cube, Cube, Cube>>& connections) const;
 	void extractMorseSkeleton(const value_t& threshold);
 	void cancelPair(const Cube&s, const Cube& t);
