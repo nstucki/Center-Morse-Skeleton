@@ -510,22 +510,23 @@ void MorseComplex::cancelPair(const Cube&s, const Cube& t) {
 
 	C[s.dim].erase(remove(C[s.dim].begin(), C[s.dim].end(), s), C[s.dim].end());
 	C[t.dim].erase(remove(C[t.dim].begin(), C[t.dim].end(), t), C[t.dim].end());
-	for (tuple<Cube, Cube, Cube> c : connection) {
-		V.emplace(get<1>(c), get<0>(c));
-		coV.emplace(get<0>(c), get<1>(c));
-		if (get<1>(c) != get<2>(c)) {
-			auto it = V.find(get<1>(c));
+
+	for (tuple<Cube, Cube, Cube> con : connection) {
+		if (get<1>(con) != get<2>(con)) {
+			auto it = V.find(get<1>(con));
 			if (it != V.end()) { V.erase(it); }
 			else { cerr << "key not found!" << endl; }
-			it = coV.find(get<2>(c));
+			it = coV.find(get<2>(con));
 			if (it != coV.end()) { coV.erase(it); }
 			else { cerr << "key not found!" << endl; }
 		}
+		V.emplace(get<1>(con), get<0>(con));
+		coV.emplace(get<0>(con), get<1>(con));
 	}
 }
 
 
-void MorseComplex::cancelPairs(const value_t& threshold) {
+void MorseComplex::cancelPairsBelow(const value_t& threshold) {
 	vector<Cube> cancelable;
 	bool canceled = true;
 	while ((C[0].size() != 0 || C[1].size() != 0 || C[2].size() != 0 || C[3].size() != 0) && canceled) {
@@ -536,7 +537,9 @@ void MorseComplex::cancelPairs(const value_t& threshold) {
 				vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
 
 				cancelable.clear();
-				for (const pair<Cube, uint8_t> b : boundary) { if (get<1>(b) == 1) { cancelable.push_back(get<0>(b)); } }
+				for (const pair<Cube, uint8_t> b : boundary) {
+					if (get<1>(b) == 1) { cancelable.push_back(get<0>(b)); }
+				}
 				if (cancelable.size() == 0) { continue; }
 				sort(cancelable.begin(), cancelable.end());
 

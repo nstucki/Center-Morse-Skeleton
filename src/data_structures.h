@@ -87,7 +87,7 @@ class MorseComplex {
 	void getConnections(const Cube&s, const Cube& t, vector<tuple<Cube, Cube, Cube>>& connections) const;
 	void extractMorseSkeleton(const value_t& threshold);
 	void cancelPair(const Cube&s, const Cube& t);
-	void cancelPairs(const value_t& threshold);
+	void cancelPairsBelow(const value_t& threshold);
 	void checkV() const;
 	void printC() const;
 	void printV() const;

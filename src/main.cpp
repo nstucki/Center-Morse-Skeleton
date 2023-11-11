@@ -91,9 +91,7 @@ int main(int argc, char** argv) {
 
     mc.processLowerStars();
     mc.checkV();
-    if (print) { 
-        mc.printC(); cout << endl;
-    }
+    if (print) { mc.printC(); cout << endl; }
 
     value_t epsilon = 0.9999;
 
@@ -156,7 +154,7 @@ int main(int argc, char** argv) {
     // if (print) { mc.printC(); }
 
     value_t delta = 20;
-    mc.cancelPairs(delta);
+    mc.cancelPairsBelow(delta);
     mc.checkV();
     if (print) { mc.printC(); cout << endl; }
 }
