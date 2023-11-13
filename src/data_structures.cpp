@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <queue>
+#include <cstdlib>
 
 using namespace std;
 
@@ -251,8 +252,8 @@ void MorseComplex::perturbImage() {
 		return;
 	}
 
-	perturbed = true;
 	value_t minDistance = findMinimumDistance();
+	perturbation = minDistance;
 
 	if (minDistance != 0) {
 		value_t denom = 3*shape[0]*shape[1]*shape[2];
@@ -264,6 +265,8 @@ void MorseComplex::perturbImage() {
 			}
 		}
 	}
+
+	perturbed = true;
 }
 
 
@@ -364,7 +367,19 @@ void MorseComplex::extractMorseComplex() {
 }
 
 
-void MorseComplex::traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow) const {
+void MorseComplex::traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated) const {
+	unordered_map<Cube, size_t, Cube::Hash> nrIn;
+	unordered_map<Cube, size_t, Cube::Hash> count;
+	if (coordinated) {
+		traverseFlow(s, flow, false);
+		for (const tuple<Cube, Cube, Cube>& f : flow) {
+			auto it = nrIn.find(get<2>(f));
+			if (it != nrIn.end()) { ++(it->second); }
+			else { nrIn.emplace(get<2>(f), 1); }
+		}
+		flow.clear();
+	}
+
 	BoundaryEnumerator enumerator(*this);
 	priority_queue<Cube> queue;
 	set<Cube> seen;
@@ -390,6 +405,18 @@ void MorseComplex::traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& 
 				if (c != b) {
 					auto it = seen.find(c);
 					if (it == seen.end()) {
+						if (coordinated) {
+							auto itCount = count.find(c);
+							auto itNrIn = nrIn.find(c);
+							if (itCount != count.end()) { 
+								++(itCount->second);
+								if (itCount->second != itNrIn->second) { continue; }
+							}
+							else {
+								count.emplace(c, 1);
+								if (itNrIn->second != 1) { continue; }
+							}
+						}
 						queue.push(c);
 						seen.insert(c);
 					}
@@ -400,7 +427,19 @@ void MorseComplex::traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& 
 }
 
 
-void MorseComplex::traverseCoflow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow) const {
+void MorseComplex::traverseCoflow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated) const {
+	unordered_map<Cube, size_t, Cube::Hash> nrIn;
+	unordered_map<Cube, size_t, Cube::Hash> count;
+	if (coordinated) {
+		traverseCoflow(s, flow, false);
+		for (const tuple<Cube, Cube, Cube>& f : flow) {
+			auto it = nrIn.find(get<2>(f));
+			if (it != nrIn.end()) { ++(it->second); }
+			else { nrIn.emplace(get<2>(f), 1); }
+		}
+		flow.clear();
+	}
+
 	CoboundaryEnumerator enumerator(*this);
 	priority_queue<Cube, vector<Cube>, ReverseOrder> queue;
 	set<Cube> seen;
@@ -426,6 +465,18 @@ void MorseComplex::traverseCoflow(const Cube& s, vector<tuple<Cube, Cube, Cube>>
 				if (c != b) {
 					auto it = seen.find(c);
 					if (it == seen.end()) {
+						if (coordinated) {
+							auto itCount = count.find(c);
+							auto itNrIn = nrIn.find(c);
+							if (itCount != count.end()) { 
+								++(itCount->second);
+								if (itCount->second != itNrIn->second) { continue; }
+							}
+							else {
+								count.emplace(c, 1);
+								if (itNrIn->second != 1) { continue; }
+							}
+						}
 						queue.push(c);
 						seen.insert(c);
 					}
@@ -542,10 +593,10 @@ void MorseComplex::cancelPair(const Cube&s, const Cube& t) {
 		if (get<1>(con) != get<2>(con)) {
 			auto it = V.find(get<1>(con));
 			if (it != V.end()) { V.erase(it); }
-			else { cerr << "key not found!" << endl; }
+			else { cerr << "Error: key not found!" << endl; exit(EXIT_FAILURE); }
 			it = coV.find(get<2>(con));
 			if (it != coV.end()) { coV.erase(it); }
-			else { cerr << "key not found!" << endl; }
+			else { cerr << "Error: key not found!" << endl; exit(EXIT_FAILURE);}
 		}
 		V.emplace(get<1>(con), get<0>(con));
 		coV.emplace(get<0>(con), get<1>(con));
@@ -553,14 +604,17 @@ void MorseComplex::cancelPair(const Cube&s, const Cube& t) {
 }
 
 
-void MorseComplex::cancelPairsBelow(const value_t& threshold) {
+void MorseComplex::cancelPairsBelow(const value_t& threshold, bool print) {
+	if (print) { cout << "canceling pairs below " << threshold << " ..." << endl << endl; }
+
 	vector<Cube> cancelable;
 	bool canceled = true;
-	while ((C[0].size() != 0 || C[1].size() != 0 || C[2].size() != 0 || C[3].size() != 0) && canceled) {
+	while ((C[1].size() != 0 || C[2].size() != 0 || C[3].size() != 0) && canceled) {
 		canceled = false;
-		for (uint8_t dim = 4; dim-- > 0;) {
+		for (uint8_t dim = 4; dim-- > 1;) {
 			for (const Cube& s : C[dim]) {
-				if (s.birth > threshold) { continue; }
+				if (s.birth >= threshold) { continue; }
+
 				vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
 
 				cancelable.clear();
@@ -571,9 +625,63 @@ void MorseComplex::cancelPairsBelow(const value_t& threshold) {
 				sort(cancelable.begin(), cancelable.end());
 
 				cancelPair(s, cancelable.back());
+				if (print) {
+					cout << "canceling pair "; s.print(); cout << " <-> "; cancelable.back().print(); cout << endl;
+					printC(); cout << endl;
+				}
 
 				canceled = true;
 				break;
+			}
+			if (canceled) { break; }
+		}
+	}
+}
+
+
+auto boundaryComparator = [](const auto& lhs, const auto& rhs) {
+    return std::get<0>(lhs) < std::get<0>(rhs);
+};
+
+
+void MorseComplex::cancelClosePairsBelow(const value_t& threshold, bool print) {
+	if (print) { cout << "canceling close pairs " << " ..." << endl << endl; }
+
+	bool canceled = true;
+	while ((C[1].size() != 0 || C[2].size() != 0 || C[3].size() != 0) && canceled) {
+		canceled = false;
+		for (uint8_t dim = 4; dim-- > 1;) {
+			for (const Cube& s : C[dim]) {
+				if (s.birth >= threshold) { continue; }
+
+				vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
+				if (boundary.size() == 0) { continue; }
+				sort(boundary.begin(), boundary.end(), boundaryComparator);
+
+				value_t maxBirthBoundary = get<0>(boundary.back()).birth;
+				for (auto it = boundary.rbegin(); it != boundary.rend(); ++it) {
+					if (get<0>(*it).birth < maxBirthBoundary) { break; }
+					if (get<1>(*it) == 1) {
+						vector<pair<Cube, uint8_t>> coBoundary = getMorseCoboundary(get<0>(*it));
+						sort(boundary.begin(), boundary.end(), boundaryComparator);
+						for (const pair<Cube, uint8_t>& c : coBoundary) {
+							if (get<0>(c).birth < s.birth) { break; }
+							if (get<0>(c) == s) {
+
+								cancelPair(s, get<0>(*it));
+								if (print) {
+									cout << "canceling close pair "; s.print(); cout << " <-> "; get<0>(*it).print(); cout << endl;
+									printC(); cout << endl;
+								}
+
+								canceled = true;
+								break;
+							}
+						}
+					}
+					if (canceled) { break; }
+				}
+				if (canceled) { break; }
 			}
 			if (canceled) { break; }
 		}
@@ -598,7 +706,10 @@ void MorseComplex::checkV() const {
 						if (V.count(cube) != 0) { ++counter; }
 						if (coV.count(cube) != 0) { ++counter; }
 						if (find(C[dim].begin(), C[dim].end(), cube) != C[dim].end()) { ++counter; }
-						if (counter != 1) { cube.print(); cout << " occurs " << counter << " times!" << endl; }
+						if (counter != 1) { 
+							cerr << "Error: "; cube.print(); cout << " occurs " << counter << " times!" << endl;
+							exit(EXIT_FAILURE);
+						}
 					}
 				}
 			}
@@ -608,12 +719,9 @@ void MorseComplex::checkV() const {
 
 
 void MorseComplex::printC() const {
-	cout << "C: " << endl;
-	for (uint8_t dim = 0; dim < 4; ++dim) {
-		for (const Cube& c : C[dim]) {
-			c.print(); cout << endl;
-		}
-	}
+	cout << "number of critical cells: ";
+	for (uint8_t dim = 0; dim < 4; ++dim) { cout << C[dim].size() << " "; }
+	cout << endl;
 }
 
 

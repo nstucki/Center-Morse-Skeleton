@@ -20,7 +20,7 @@ void print_usage_and_exit(int exit_code) {
          << "Options:" << endl
          << endl
          << "  --help, -h                      print this screen" << endl
-         << "  --print, -p                     print result to console" << endl 
+         << "  --print, -pr                     print result to console" << endl 
          << "  --plot, -pl                     plot result to console" << endl              
          << endl;
 	exit(exit_code);
@@ -35,9 +35,6 @@ int main(int argc, char** argv) {
 #endif
 
     string filename = "";
-	string matchedFilename = "matched.csv";
-	string unmatched0Filename = "unmatched_0.csv";
-	string unmatched1Filename = "unmatched_1.csv";
 	fileFormat format;
     bool print = false;
     bool plot = false;
@@ -46,7 +43,7 @@ int main(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
 		const string arg(argv[i]);
 		if (arg == "--help" || arg == "-h") { print_usage_and_exit(0); }
-        else if (arg == "--print" || arg == "-p") { print = true; }
+        else if (arg == "--print" || arg == "-pr") { print = true; }
         else if (arg == "--plot" || arg == "-pl") { plot = true; } 
         else { filename = argv[i]; } 
 	}
@@ -78,31 +75,25 @@ int main(int argc, char** argv) {
 #endif
 
     MorseComplex mc(std::move(input), std::move(shape));
-    if (plot) { 
-        cout << "Image:" << endl;
-        mc.plotImage(); cout << endl;
-    }
+
+    if (plot) { cout << "Image:" << endl; mc.plotImage(); cout << endl; }
 
     mc.perturbImage();
-    if (plot) { 
-        cout << "Perturbed image:" << endl;
-        mc.plotImage(); cout << endl;
-    }
+
+    if (plot) { cout << "Perturbed image:" << endl; mc.plotImage(); cout << endl; }
 
     mc.processLowerStars();
     mc.checkV();
+
     if (print) { mc.printC(); cout << endl; }
 
-    value_t epsilon = 0.9999;
-
-    //mc.plotV(1);
-
-    mc.extractMorseSkeleton(epsilon);
-    if (plot) { 
-        cout << "Morse Skeleton:" << endl;
-        mc.plotMorseSkeleton(); cout << endl;
-        mc.plotMorseSkeletonPixels(); cout << endl;
-    }
+    // value_t epsilon = 0.9999;
+    // mc.extractMorseSkeleton(epsilon);
+    // if (plot) { 
+    //     cout << "Morse Skeleton:" << endl;
+    //     mc.plotMorseSkeleton(); cout << endl;
+    //     mc.plotMorseSkeletonPixels(); cout << endl;
+    // }
     
     //mc.extractMorseComplex();
     //if (print) { mc.printFaces(); cout << endl; }
@@ -164,7 +155,7 @@ int main(int argc, char** argv) {
     // if (print) { mc.printC(); }
 
     value_t delta = 1;
-    mc.cancelPairsBelow(delta);
+    mc.cancelClosePairsBelow(delta, print);
+    mc.cancelPairsBelow(delta, print);
     mc.checkV();
-    if (print) { mc.printC(); cout << endl; }
 }

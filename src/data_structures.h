@@ -81,14 +81,15 @@ class MorseComplex {
 	void perturbImage();
 	void processLowerStars();
 	void extractMorseComplex();
-	void traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow) const;
-	void traverseCoflow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow) const;
+	void traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
+	void traverseCoflow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
 	vector<pair<Cube, uint8_t>> getMorseBoundary(const Cube& s) const;
 	vector<pair<Cube, uint8_t>> getMorseCoboundary(const Cube& s) const;
 	void getConnections(const Cube&s, const Cube& t, vector<tuple<Cube, Cube, Cube>>& connections) const;
 	void extractMorseSkeleton(const value_t& threshold);
 	void cancelPair(const Cube&s, const Cube& t);
-	void cancelPairsBelow(const value_t& threshold);
+	void cancelPairsBelow(const value_t& threshold, bool print=true);
+	void cancelClosePairsBelow(const value_t& threshold, bool print=true);
 	void checkV() const;
 	void printC() const;
 	void printV() const;
@@ -120,4 +121,5 @@ class MorseComplex {
 	value_t*** grid;
 	const vector<index_t> shape;
 	bool perturbed;
+	value_t perturbation;
 };
