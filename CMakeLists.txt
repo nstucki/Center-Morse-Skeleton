@@ -10,11 +10,23 @@ endif()
 
 project(DMT)
 
+add_executable(CancelPairs
+    src/cancel_pairs.cpp
+    src/utils.cpp
+    src/data_structures.cpp
+    src/enumerators.cpp
+)
+
 add_executable(DMT
     src/main.cpp
 	src/utils.cpp
     src/data_structures.cpp
     src/enumerators.cpp
+)
+
+set_target_properties(CancelPairs PROPERTIES
+    CXX_STANDARD 17
+    CXX_EXTENSIONS OFF
 )
 
 set_target_properties(DMT PROPERTIES

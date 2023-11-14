@@ -605,10 +605,14 @@ void MorseComplex::cancelPair(const Cube&s, const Cube& t) {
 
 
 void MorseComplex::cancelPairsBelow(const value_t& threshold, bool print) {
-	if (print) { cout << "canceling pairs below " << threshold << " ..." << endl << endl; }
+	if (print) {
+		cout << "Critical cells:" << endl;
+		printC(threshold);
+	}
 
-	vector<Cube> cancelable;
 	bool canceled = true;
+	vector<Cube> cancelable;
+
 	while ((C[1].size() != 0 || C[2].size() != 0 || C[3].size() != 0) && canceled) {
 		canceled = false;
 		for (uint8_t dim = 4; dim-- > 1;) {
@@ -625,10 +629,7 @@ void MorseComplex::cancelPairsBelow(const value_t& threshold, bool print) {
 				sort(cancelable.begin(), cancelable.end());
 
 				cancelPair(s, cancelable.back());
-				if (print) {
-					cout << "canceling pair "; s.print(); cout << " <-> "; cancelable.back().print(); cout << endl;
-					printC(); cout << endl;
-				}
+				if (print) { printC(threshold); }
 
 				canceled = true;
 				break;
@@ -636,6 +637,7 @@ void MorseComplex::cancelPairsBelow(const value_t& threshold, bool print) {
 			if (canceled) { break; }
 		}
 	}
+	if (print) { cout << endl; }
 }
 
 
@@ -645,9 +647,13 @@ auto boundaryComparator = [](const auto& lhs, const auto& rhs) {
 
 
 void MorseComplex::cancelClosePairsBelow(const value_t& threshold, bool print) {
-	if (print) { cout << "canceling close pairs " << " ..." << endl << endl; }
+	if (print) {
+		cout << "Critical cells:" << endl;
+		printC(threshold);
+	}
 
 	bool canceled = true;
+
 	while ((C[1].size() != 0 || C[2].size() != 0 || C[3].size() != 0) && canceled) {
 		canceled = false;
 		for (uint8_t dim = 4; dim-- > 1;) {
@@ -669,11 +675,8 @@ void MorseComplex::cancelClosePairsBelow(const value_t& threshold, bool print) {
 							if (get<0>(c) == s) {
 
 								cancelPair(s, get<0>(*it));
-								if (print) {
-									cout << "canceling close pair "; s.print(); cout << " <-> "; get<0>(*it).print(); cout << endl;
-									printC(); cout << endl;
-								}
-
+								if (print) { printC(threshold); }
+								
 								canceled = true;
 								break;
 							}
@@ -686,6 +689,7 @@ void MorseComplex::cancelClosePairsBelow(const value_t& threshold, bool print) {
 			if (canceled) { break; }
 		}
 	}
+	if (print) { cout << endl; }
 }
 
 
@@ -718,10 +722,39 @@ void MorseComplex::checkV() const {
 }
 
 
-void MorseComplex::printC() const {
-	cout << "number of critical cells: ";
+vector<size_t> MorseComplex::getNumberOfCriticalCells(const value_t& threshold) const {
+	vector<size_t> result;
+
+	for (uint8_t dim = 0; dim < 4; ++dim) { result.push_back(C[dim].size()); }
+
+	if (threshold != INFTY) {
+		for (uint8_t dim = 0; dim < 4; ++dim) {
+			size_t count = 0;
+			for (const Cube& c : C[dim]) {
+				if (c.birth < threshold) { ++count; }
+			}
+			result.push_back(count);
+		}
+	}
+
+	return result;
+}
+
+
+void MorseComplex::printC(const value_t& threshold) const {
+	cout << "\rtotal: ";
 	for (uint8_t dim = 0; dim < 4; ++dim) { cout << C[dim].size() << " "; }
-	cout << endl;
+	if (threshold != INFTY) {
+		cout << "--- below " << threshold << ": ";
+		for (uint8_t dim = 0; dim < 4; ++dim) {
+			size_t count = 0;
+			for (const Cube& c : C[dim]) {
+				if (c.birth < threshold) { ++count; }
+			}
+			cout << count << " ";
+		}
+	}
+	cout << "                   ";
 }
 
 

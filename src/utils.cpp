@@ -115,3 +115,25 @@ void printPQ(priority_queue<Cube, vector<Cube>, ReverseOrder>& PQ) {
     make_heap(temp.begin(), temp.end());
     PQ = priority_queue<Cube, vector<Cube>, ReverseOrder>(temp.begin(), temp.end());
 }
+
+
+
+void DataFrame::addRow(const string& name, const vector<size_t>& row) { data.emplace(name, row); }
+
+
+void DataFrame::saveToJson(const string& filename) const {
+    json result;
+
+    for (auto it = data.begin(); it != data.end(); ++it) {
+        json column;
+        for (size_t i = 0; i < (it->second).size(); ++i) {
+            if (i < 4) { column["total in dim " + to_string(i%4)] = (it->second)[i]; }
+            else { column["below threshold in dim " + to_string(i%4)] = (it->second)[i]; }
+        }
+        result[it->first] = column;
+    }
+
+    ofstream outputFile(filename);
+    outputFile << result.dump(2);
+    outputFile.close();
+    }

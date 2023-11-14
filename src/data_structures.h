@@ -91,7 +91,8 @@ class MorseComplex {
 	void cancelPairsBelow(const value_t& threshold, bool print=true);
 	void cancelClosePairsBelow(const value_t& threshold, bool print=true);
 	void checkV() const;
-	void printC() const;
+	vector<size_t> getNumberOfCriticalCells(const value_t& threshold=INFTY) const;
+	void printC(const value_t& threshold=INFTY) const;
 	void printV() const;
 	void printFaces();
 	void plotV() const;
