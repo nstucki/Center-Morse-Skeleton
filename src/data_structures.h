@@ -104,9 +104,9 @@ class MorseComplex {
 	void plotMorseSkeletonPixels() const;
 	void plotImage() const;
 	vector<vector<Cube>> C;
-	unordered_map<Cube, Cube, Cube::Hash> V;
-	unordered_map<Cube, Cube, Cube::Hash> coV;
-	unordered_map<Cube, vector<Cube>, Cube::Hash> faces;
+	std::unordered_map<Cube, Cube, Cube::Hash> V;
+	std::unordered_map<Cube, Cube, Cube::Hash> coV;
+	std::unordered_map<Cube, vector<Cube>, Cube::Hash> faces;
 	set<Cube> morseSkeleton;
 	set<vector<index_t>> morseSkeletonPixels;
 
