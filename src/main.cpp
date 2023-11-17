@@ -155,7 +155,8 @@ int main(int argc, char** argv) {
     // if (print) { mc.printC(); }
 
     value_t delta = 1;
-    mc.cancelClosePairsBelow(delta, print);
+    //mc.cancelClosePairsBelow(delta, print);
     mc.cancelPairsBelow(delta, print);
+    mc.cancelPairsAbove(delta, print);
     mc.checkV();
 }

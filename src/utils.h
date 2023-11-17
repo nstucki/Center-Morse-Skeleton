@@ -27,9 +27,9 @@ void printPQ(priority_queue<Cube, vector<Cube>, ReverseOrder>& PQ);
 
 class DataFrame {
 public:
-    void addRow(const string& name, const vector<size_t>& row);
-    void saveToJson(const string& filename) const;
+    void addRow(const string& name, const vector<vector<size_t>>& row);
+    void saveToJson(const string& filename, const value_t& threshold) const;
 
 private:
-    map<string, vector<size_t>> data;
+    map<string, vector<vector<size_t>>> data;
 };

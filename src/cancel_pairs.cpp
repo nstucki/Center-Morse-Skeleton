@@ -82,27 +82,31 @@ int main(int argc, char** argv) {
         mc.checkV();
 
         if (print) {
-            cout << "Critical cells:" << endl;
+            cout << endl << "Critical cells:" << endl;
             mc.printC(threshold); cout << endl;
         }
 
-        if (print) {
-            cout << "Canceling pairs below " << threshold << " ... " << endl;
-        }
+        if (print) { cout << endl << "Canceling pairs below " << threshold << " ... " << endl; }
         mc.cancelPairsBelow(threshold, print);
 
-        if (print) { cout << "Checking gradient vectorfield ..." << endl; }
+        if (print) { cout << endl << "Canceling pairs above " << threshold << " ... " << endl; }
+        mc.cancelPairsAbove(threshold, print);
+
+        if (print) { cout << endl << "Checking gradient vectorfield ..." << endl; }
         mc.checkV();
 
         if (save) {
             if (print) { cout << "Saving result ..." << endl; }
-            vector<size_t> numCriticalCells = mc.getNumberOfCriticalCells(threshold);
+            vector<vector<size_t>> numCriticalCells = mc.getNumberOfCriticalCells(threshold);
             df.addRow(fileName, numCriticalCells);
         }
     }
 
     if (save) {
-        cout << "Saving results to " << directory+"/result.json" << endl;
-        df.saveToJson(directory+"/result.json");
+        if (print) {
+            cout << "-----------------------------------------------------------------------------------" << endl;
+            cout << "Saving results to " << directory + "/result.json" << endl;
+        }
+        df.saveToJson(directory + "/result.json", threshold);
     }
 }

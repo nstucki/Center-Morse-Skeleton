@@ -118,17 +118,24 @@ void printPQ(priority_queue<Cube, vector<Cube>, ReverseOrder>& PQ) {
 
 
 
-void DataFrame::addRow(const string& name, const vector<size_t>& row) { data.emplace(name, row); }
+void DataFrame::addRow(const string& name, const vector<vector<size_t>>& row) { data.emplace(name, row); }
 
 
-void DataFrame::saveToJson(const string& filename) const {
+void DataFrame::saveToJson(const string& filename, const value_t& threshold) const {
     json result;
 
     for (auto it = data.begin(); it != data.end(); ++it) {
         json column;
         for (size_t i = 0; i < (it->second).size(); ++i) {
-            if (i < 4) { column["total in dim " + to_string(i%4)] = (it->second)[i]; }
-            else { column["below threshold in dim " + to_string(i%4)] = (it->second)[i]; }
+            for (size_t j = 0; j < (it->second)[i].size(); ++j) {
+                if (i == 0) { column["total in dim " + to_string(j)] = (it->second)[i][j]; }
+                else if (i == 1) { 
+                    column["below " + to_string(threshold) + " in dim " + to_string(j)] = (it->second)[i][j];
+                }
+                else {
+                    column["above " + to_string(threshold) + " in dim " + to_string(j)] = (it->second)[i][j];
+                }
+            }
         }
         result[it->first] = column;
     }

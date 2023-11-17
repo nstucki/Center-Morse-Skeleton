@@ -641,6 +641,44 @@ void MorseComplex::cancelPairsBelow(const value_t& threshold, bool print) {
 }
 
 
+void MorseComplex::cancelPairsAbove(const value_t& threshold, bool print) {
+	if (print) {
+		cout << "Critical cells:" << endl;
+		printC(threshold);
+	}
+
+	bool canceled = true;
+	vector<Cube> cancelable;
+
+	while ((C[1].size() != 0 || C[2].size() != 0 || C[3].size() != 0) && canceled) {
+		canceled = false;
+		for (uint8_t dim = 4; dim-- > 1;) {
+			for (const Cube& s : C[dim]) {
+				if (s.birth < threshold) { continue; }
+
+				vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
+
+				cancelable.clear();
+				for (const pair<Cube, uint8_t> b : boundary) {
+					if (get<1>(b) == 1) { cancelable.push_back(get<0>(b)); }
+				}
+				if (cancelable.size() == 0) { continue; }
+				sort(cancelable.begin(), cancelable.end());
+				if (cancelable.back().birth < threshold) { continue; }
+
+				cancelPair(s, cancelable.back());
+				if (print) { printC(threshold); }
+
+				canceled = true;
+				break;
+			}
+			if (canceled) { break; }
+		}
+	}
+	if (print) { cout << endl; }
+}
+
+
 auto boundaryComparator = [](const auto& lhs, const auto& rhs) {
     return std::get<0>(lhs) < std::get<0>(rhs);
 };
@@ -722,18 +760,21 @@ void MorseComplex::checkV() const {
 }
 
 
-vector<size_t> MorseComplex::getNumberOfCriticalCells(const value_t& threshold) const {
-	vector<size_t> result;
+vector<vector<size_t>> MorseComplex::getNumberOfCriticalCells(const value_t& threshold) const {
+	vector<vector<size_t>> result(3);
 
-	for (uint8_t dim = 0; dim < 4; ++dim) { result.push_back(C[dim].size()); }
+	for (uint8_t dim = 0; dim < 4; ++dim) { result[0].push_back(C[dim].size()); }
 
 	if (threshold != INFTY) {
 		for (uint8_t dim = 0; dim < 4; ++dim) {
-			size_t count = 0;
+			size_t countBelow = 0;
+			size_t countAbove = 0;
 			for (const Cube& c : C[dim]) {
-				if (c.birth < threshold) { ++count; }
+				if (c.birth < threshold) { ++countBelow; }
+				else { ++countAbove; }
 			}
-			result.push_back(count);
+			result[1].push_back(countBelow);
+			result[2].push_back(countAbove);
 		}
 	}
 
@@ -750,6 +791,14 @@ void MorseComplex::printC(const value_t& threshold) const {
 			size_t count = 0;
 			for (const Cube& c : C[dim]) {
 				if (c.birth < threshold) { ++count; }
+			}
+			cout << count << " ";
+		}
+		cout << "--- above " << threshold << ": ";
+		for (uint8_t dim = 0; dim < 4; ++dim) {
+			size_t count = 0;
+			for (const Cube& c : C[dim]) {
+				if (c.birth >= threshold) { ++count; }
 			}
 			cout << count << " ";
 		}
