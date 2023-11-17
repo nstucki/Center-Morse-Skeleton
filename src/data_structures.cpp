@@ -246,21 +246,21 @@ Cube MorseComplex::getCube(const index_t& x, const index_t& y, const index_t& z)
 vector<Cube> MorseComplex::getFaces(const Cube& cube) { return faces[cube]; }
 
 
-void MorseComplex::perturbImage() {
+void MorseComplex::perturbImage(const value_t& minDistance) {
 	if (perturbed) { 
 		cout << "already perturbed!" << endl;
 		return;
 	}
 
-	value_t minDistance = findMinimumDistance();
-	perturbation = minDistance;
+	if (minDistance == INFTY) { perturbation = findMinimumDistance(); }
+	else { perturbation = minDistance; }
 
-	if (minDistance != 0) {
+	if (perturbation != 0) {
 		value_t denom = 3*shape[0]*shape[1]*shape[2];
 		for (size_t x = 0; x < shape[0]; ++x) {
 			for (size_t y = 0; y < shape[1]; ++y) {
 				for (size_t z = 0; z < shape[2]; ++z) {
-					addValue(x, y, z, minDistance*(x+shape[0]*y+shape[0]*shape[1]*z)/denom);          
+					addValue(x, y, z, perturbation*(x+shape[0]*y+shape[0]*shape[1]*z)/denom);          
 				}
 			}
 		}

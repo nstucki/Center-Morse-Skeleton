@@ -79,7 +79,7 @@ class MorseComplex {
 						const uint8_t& type, const uint8_t& dim) const;
 	Cube getCube(const index_t& x, const index_t& y, const index_t& z) const;
 	vector<Cube> getFaces(const Cube& cube);
-	void perturbImage();
+	void perturbImage(const value_t& minDistance=INFTY);
 	void processLowerStars();
 	void extractMorseComplex();
 	void traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;

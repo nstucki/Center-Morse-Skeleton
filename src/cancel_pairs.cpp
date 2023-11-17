@@ -21,6 +21,7 @@ void print_usage_and_exit(int exit_code) {
          << endl
          << "  --help, -h                      print this screen" << endl
          << "  --threshold, -t                 cancel pairs up to threshold" << endl
+         << "  --mindist, -m                   minimum distance of pixel values" << endl
          << "  --print, -p                     print result to console" << endl
          << "  --save, -s                      save result to file" << endl            
          << endl;
@@ -33,6 +34,7 @@ int main(int argc, char** argv) {
     string directory = "";
 	fileFormat format;
     value_t threshold = 1;
+    value_t minDistance = INFTY;
     bool print = false;
 	bool save = false;
     DataFrame df; 
@@ -40,7 +42,8 @@ int main(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
 		const string arg(argv[i]);
 		if (arg == "--help" || arg == "-h") { print_usage_and_exit(0); }
-        else if (arg == "--threshold" || arg == "-t") { threshold = stod(argv[++i]); } 
+        else if (arg == "--threshold" || arg == "-t") { threshold = stod(argv[++i]); }
+        else if (arg == "--mindist" || arg == "-m") { minDistance = stod(argv[++i]); }
         else if (arg == "--print" || arg == "-p") { print = true; }
         else if (arg == "--print" || arg == "-p") { print = true; }
         else if (arg == "--save" || arg == "-s") { save = true; } 
@@ -73,7 +76,7 @@ int main(int argc, char** argv) {
         MorseComplex mc(std::move(input), std::move(shape));
 
         if (print) { cout << "Perturbing image ..." << endl; }
-        mc.perturbImage();
+        mc.perturbImage(minDistance);
 
         if (print) { cout << "Processing Lower Stars ..." << endl; }
         mc.processLowerStars();
