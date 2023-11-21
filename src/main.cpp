@@ -20,7 +20,9 @@ void print_usage_and_exit(int exit_code) {
          << "Options:" << endl
          << endl
          << "  --help, -h                      print this screen" << endl
-         << "  --print, -pr                     print result to console" << endl 
+         << "  --threshold, -t                 cancel pairs up to threshold" << endl
+         << "  --mindist, -m                   minimum distance of pixel values" << endl
+         << "  --print, -p                     print result to console" << endl 
          << "  --plot, -pl                     plot result to console" << endl              
          << endl;
 	exit(exit_code);
@@ -36,6 +38,8 @@ int main(int argc, char** argv) {
 
     string filename = "";
 	fileFormat format;
+    value_t threshold = 1;
+    value_t minDistance = INFTY;
     bool print = false;
     bool plot = false;
 	bool saveResult = false;
@@ -43,7 +47,9 @@ int main(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
 		const string arg(argv[i]);
 		if (arg == "--help" || arg == "-h") { print_usage_and_exit(0); }
-        else if (arg == "--print" || arg == "-pr") { print = true; }
+        else if (arg == "--threshold" || arg == "-t") { threshold = stod(argv[++i]); }
+        else if (arg == "--mindist" || arg == "-m") { minDistance = stod(argv[++i]); }
+        else if (arg == "--print" || arg == "-p") { print = true; }
         else if (arg == "--plot" || arg == "-pl") { plot = true; } 
         else { filename = argv[i]; } 
 	}
@@ -78,85 +84,31 @@ int main(int argc, char** argv) {
 
     if (plot) { cout << "Image:" << endl; mc.plotImage(); cout << endl; }
 
-    mc.perturbImage();
+    mc.perturbImage(minDistance);
 
     if (plot) { cout << "Perturbed image:" << endl; mc.plotImage(); cout << endl; }
 
     mc.processLowerStars();
     mc.checkV();
 
-    if (print) { mc.printC(); cout << endl; }
+    if (print) { mc.printC(threshold); cout << endl; }
 
-    // value_t epsilon = 0.9999;
-    // mc.extractMorseSkeleton(epsilon);
-    // if (plot) { 
-    //     cout << "Morse Skeleton:" << endl;
-    //     mc.plotMorseSkeleton(); cout << endl;
-    //     mc.plotMorseSkeletonPixels(); cout << endl;
-    // }
-    
-    //mc.extractMorseComplex();
-    //if (print) { mc.printFaces(); cout << endl; }
+    if (print) { cout << "canceling < " << threshold << " ..." << endl; }
+    mc.cancelPairsBelow(threshold, print);
 
-    // Cube s = mc.C[3][0];
-    // vector<tuple<Cube,Cube,Cube>> flow;
-    // mc.traverseFlow(s, flow);
-    // if (print) { cout << "critical cube s: "; s.print(); cout << endl; }
-    // if (plot) { 
-    //     cout << "flow: " << endl; 
-    //     mc.plotFlow(s); cout << endl;
-    // }
+    if (print) { cout << "canceling >= " << threshold << " ..." << endl; }
+    mc.cancelPairsAbove(threshold, print);
 
-    // vector<pair<Cube, uint8_t>> boundary = mc.getMorseBoundary(s);
-    // if (print) {
-    //     cout  << "boundary: " << endl;
-    //     for (const pair<Cube, uint8_t>& b : boundary) {
-    //         get<0>(b).print(); cout << " " << unsigned(get<1>(b)) << endl;
-    //     }
-    //     cout << endl;
-    // }
-
-    // Cube t;
-    // for (const pair<Cube, uint8_t>& b : boundary) { if (get<1>(b) == 1) { t = get<0>(b); break; } }
-    // flow.clear();
-    // mc.traverseCoflow(t, flow);
-    // if (print) { cout << "critical cube t: "; t.print(); cout << endl; }
-    // if (plot) { 
-    //     cout << "coflow: " << endl; 
-    //     mc.plotCoFlow(t); cout << endl;
-    // }
-
-    // vector<pair<Cube, uint8_t>> coboundary = mc.getMorseCoboundary(t);
-    // if (print) {
-    //     cout  << "coboundary: " << endl;
-    //     for (const pair<Cube, uint8_t>& c : coboundary) {
-    //         get<0>(c).print(); cout << " " << unsigned(get<1>(c)) << endl;
-    //     }
-    //     cout << endl;
-    // }
-    
-
-    // vector<tuple<Cube,Cube,Cube>> connections;
-    // mc.getConnections(s, t, connections);
-    // if (print) {
-    //     cout << "connections from s to t:" << endl;
-    //     for (const tuple<Cube, Cube, Cube>& c : connections) {
-    //         get<0>(c).print(); get<1>(c).print(); get<2>(c).print(); cout << endl;
-    //     }
-    //     cout << endl;
-    // }
-    // if (plot) {
-    //     cout << "connections from s to t: " << endl; 
-    //     mc.plotConnections(s, t); cout << endl;
-    // }
-
-    // mc.cancelPair(s, t);
-    // mc.checkV();
-    // if (print) { mc.printC(); }
-
-    value_t delta = 1;
-    //mc.cancelClosePairsBelow(delta, print);
-    mc.cancelPairsBelow(delta, print);
-    mc.cancelPairsAbove(delta, print);
     mc.checkV();
+
+    if (print) {
+        cout << endl << "Morse boundary:" << endl;
+        for (int dim = 0; dim < 4; ++dim) {
+            for (const Cube& c : mc.C[dim]) {
+                cout << "c: "; c.print(); cout << endl;
+                mc.printMorseBoundary(c);
+                cout << endl;
+            }
+        }
+    }
 }

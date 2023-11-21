@@ -786,7 +786,7 @@ void MorseComplex::printC(const value_t& threshold) const {
 	cout << "\rtotal: ";
 	for (uint8_t dim = 0; dim < 4; ++dim) { cout << C[dim].size() << " "; }
 	if (threshold != INFTY) {
-		cout << "--- below " << threshold << ": ";
+		cout << "--- < " << threshold << ": ";
 		for (uint8_t dim = 0; dim < 4; ++dim) {
 			size_t count = 0;
 			for (const Cube& c : C[dim]) {
@@ -794,7 +794,7 @@ void MorseComplex::printC(const value_t& threshold) const {
 			}
 			cout << count << " ";
 		}
-		cout << "--- above " << threshold << ": ";
+		cout << "--- >= " << threshold << ": ";
 		for (uint8_t dim = 0; dim < 4; ++dim) {
 			size_t count = 0;
 			for (const Cube& c : C[dim]) {
@@ -820,6 +820,14 @@ void MorseComplex::printV() const {
         const Cube& key = it->first;
 		(it->first).print(); cout << " -> "; (it->second).print(); cout << endl;
     }
+}
+
+
+void MorseComplex::printMorseBoundary(const Cube& c) const {
+	vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(c);
+	for (const pair<Cube, uint8_t>& b : boundary) {
+		get<0>(b).print(); cout << " " << unsigned(get<1>(b)) << endl;
+	}
 }
 
 

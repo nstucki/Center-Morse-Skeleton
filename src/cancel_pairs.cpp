@@ -53,8 +53,8 @@ int main(int argc, char** argv) {
     for (const auto& entry : fs::directory_iterator(directory)) {
 
         string fileName = entry.path().filename().string();
-        cout << "-----------------------------------------------------------------------------------" << endl;
-        cout << "Processing " << fileName << ":" << endl;
+        if (print) { cout << "-----------------------------------------------------------------------------------" << endl; }
+        if (print) { cout << "Processing " << fileName << ":" << endl; }
 
         if (fileName.empty()) { continue; }
         if (fileName.find(".txt")!= string::npos) { format = PERSEUS; }
@@ -89,10 +89,10 @@ int main(int argc, char** argv) {
             mc.printC(threshold); cout << endl;
         }
 
-        if (print) { cout << endl << "Canceling pairs below " << threshold << " ... " << endl; }
+        if (print) { cout << endl << "Canceling pairs < " << threshold << " ... " << endl; }
         mc.cancelPairsBelow(threshold, print);
 
-        if (print) { cout << endl << "Canceling pairs above " << threshold << " ... " << endl; }
+        if (print) { cout << endl << "Canceling pairs >= " << threshold << " ... " << endl; }
         mc.cancelPairsAbove(threshold, print);
 
         if (print) { cout << endl << "Checking gradient vectorfield ..." << endl; }

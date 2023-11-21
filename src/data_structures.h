@@ -96,6 +96,7 @@ class MorseComplex {
 	vector<vector<size_t>> getNumberOfCriticalCells(const value_t& threshold=INFTY) const;
 	void printC(const value_t& threshold=INFTY) const;
 	void printV() const;
+	void printMorseBoundary(const Cube& c) const;
 	void printFaces();
 	void plotV() const;
 	void plotV(uint8_t dim) const;

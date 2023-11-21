@@ -130,10 +130,10 @@ void DataFrame::saveToJson(const string& filename, const value_t& threshold) con
             for (size_t j = 0; j < (it->second)[i].size(); ++j) {
                 if (i == 0) { column["total in dim " + to_string(j)] = (it->second)[i][j]; }
                 else if (i == 1) { 
-                    column["below " + to_string(threshold) + " in dim " + to_string(j)] = (it->second)[i][j];
+                    column["< " + to_string(threshold) + " in dim " + to_string(j)] = (it->second)[i][j];
                 }
                 else {
-                    column["above " + to_string(threshold) + " in dim " + to_string(j)] = (it->second)[i][j];
+                    column[">= " + to_string(threshold) + " in dim " + to_string(j)] = (it->second)[i][j];
                 }
             }
         }
