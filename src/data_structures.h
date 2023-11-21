@@ -15,7 +15,7 @@ class MorseComplex;
 
 
 class Cube {
-	public:
+public:
 	Cube();
 	Cube(const value_t& birth, const index_t& x, const index_t& y, const index_t& z, 
 			const uint8_t& type, const uint8_t& dim);
@@ -71,28 +71,25 @@ struct ReverseOrder {
 
 
 class MorseComplex {
-	public:
+public:
 	MorseComplex(const vector<value_t>&& image, const vector<index_t>&& shape);
+	MorseComplex(MorseComplex&& other);
 	~MorseComplex();
 	value_t getValue(const index_t& x, const index_t& y, const index_t& z) const;
 	value_t getBirth(const index_t& x, const index_t& y, const index_t& z, 
 						const uint8_t& type, const uint8_t& dim) const;
-	Cube getCube(const index_t& x, const index_t& y, const index_t& z) const;
-	vector<Cube> getFaces(const Cube& cube);
-	void perturbImage(const value_t& minDistance=INFTY);
+	
+	void perturbImage(const value_t& epsilon=INFTY);
 	void processLowerStars();
-	void extractMorseComplex();
-	void traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
-	void traverseCoflow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
 	vector<pair<Cube, uint8_t>> getMorseBoundary(const Cube& s) const;
 	vector<pair<Cube, uint8_t>> getMorseCoboundary(const Cube& s) const;
-	void getConnections(const Cube&s, const Cube& t, vector<tuple<Cube, Cube, Cube>>& connections) const;
 	void extractMorseSkeleton(const value_t& threshold);
-	void cancelPair(const Cube&s, const Cube& t);
 	void cancelPairsBelow(const value_t& threshold, bool print=true);
 	void cancelPairsAbove(const value_t& threshold, bool print=true);
 	void cancelClosePairsBelow(const value_t& threshold, bool print=true);
 	void checkV() const;
+	value_t getPerturbation() const;
+	vector<vector<Cube>> getCriticalCells() const;
 	vector<vector<size_t>> getNumberOfCriticalCells(const value_t& threshold=INFTY) const;
 	void printC(const value_t& threshold=INFTY) const;
 	void printV() const;
@@ -106,24 +103,32 @@ class MorseComplex {
 	void plotMorseSkeleton() const;
 	void plotMorseSkeletonPixels() const;
 	void plotImage() const;
-	vector<vector<Cube>> C;
-	std::unordered_map<Cube, Cube, Cube::Hash> V;
-	std::unordered_map<Cube, Cube, Cube::Hash> coV;
-	std::unordered_map<Cube, vector<Cube>, Cube::Hash> faces;
-	set<Cube> morseSkeleton;
-	set<vector<index_t>> morseSkeletonPixels;
+	const vector<index_t> shape;
 
-	private:
+private:
 	value_t*** allocateMemory() const;
 	void getGridFromVector(const vector<value_t>& vector);
 	void setValue(const index_t& x, const index_t& y, const index_t& z, const value_t& value);
 	void addValue(const index_t& x, const index_t& y, const index_t& z, const value_t& value);
-	value_t findMinimumDistance();
+	Cube getCube(const index_t& x, const index_t& y, const index_t& z) const;
+	vector<Cube> getFaces(const Cube& cube);
+	value_t getMinimumDistance();
 	vector<Cube> getLowerStar(const index_t& x, const index_t& y, const index_t& z) const;
 	size_t numUnpairedFaces(const Cube& cube, const vector<Cube>& L);
 	Cube unpairedFace(const Cube& cube, const vector<Cube>& L);
+	void extractMorseComplex();
+	void traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
+	void traverseCoflow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
+	void getConnections(const Cube&s, const Cube& t, vector<tuple<Cube, Cube, Cube>>& connections) const;
+	void cancelPair(const Cube&s, const Cube& t);
 	value_t*** grid;
-	const vector<index_t> shape;
 	bool perturbed;
+	bool processedLowerStars;
 	value_t perturbation;
+	vector<vector<Cube>> C;
+	unordered_map<Cube, Cube, Cube::Hash> V;
+	unordered_map<Cube, Cube, Cube::Hash> coV;
+	unordered_map<Cube, vector<Cube>, Cube::Hash> faces;
+	set<Cube> morseSkeleton;
+	set<vector<index_t>> morseSkeletonPixels;
 };

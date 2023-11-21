@@ -145,6 +145,12 @@ MorseComplex::MorseComplex(const vector<value_t>&& image, const vector<index_t>&
 	shape(_shape), C(4), perturbed(false) { getGridFromVector(image); }
 
 
+MorseComplex::MorseComplex(MorseComplex&& other) : shape(other.shape), C(4) {
+	grid = other.grid;
+	other.grid = nullptr;
+}
+
+
 MorseComplex::~MorseComplex() {
 	if (grid != nullptr) {
 		for (index_t i = 0; i < shape[0]+2; ++i) {
@@ -156,7 +162,7 @@ MorseComplex::~MorseComplex() {
 }
 
 
-value_t MorseComplex::getValue(const index_t& x, const index_t&  y, const index_t& z) const { 
+value_t MorseComplex::getValue(const index_t& x, const index_t& y, const index_t& z) const {
 	return grid[x+1][y+1][z+1];
 }
 
@@ -246,14 +252,14 @@ Cube MorseComplex::getCube(const index_t& x, const index_t& y, const index_t& z)
 vector<Cube> MorseComplex::getFaces(const Cube& cube) { return faces[cube]; }
 
 
-void MorseComplex::perturbImage(const value_t& minDistance) {
+void MorseComplex::perturbImage(const value_t& epsilon) {
 	if (perturbed) { 
-		cout << "already perturbed!" << endl;
+		cout << "Image is already perturbed!" << endl;
 		return;
 	}
 
-	if (minDistance == INFTY) { perturbation = findMinimumDistance(); }
-	else { perturbation = minDistance; }
+	if (epsilon == INFTY) { perturbation = getMinimumDistance(); }
+	else { perturbation = epsilon; }
 
 	if (perturbation != 0) {
 		value_t denom = 3*shape[0]*shape[1]*shape[2];
@@ -271,6 +277,14 @@ void MorseComplex::perturbImage(const value_t& minDistance) {
 
 
 void MorseComplex::processLowerStars() {
+	if (!perturbed) { 
+		cerr << "Perturb Image first!" << endl;
+		return;
+	} else if (processedLowerStars) {
+		cerr << "Lower stars already processed!" << endl;
+		return;
+	}
+
 	vector<Cube> L;
 	priority_queue<Cube, vector<Cube>, ReverseOrder> PQzero;
 	priority_queue<Cube, vector<Cube>, ReverseOrder> PQone;
@@ -319,166 +333,6 @@ void MorseComplex::processLowerStars() {
 								}
 							}
 						}
-					}
-				}
-			}
-		}
-	}
-}
-
-
-void MorseComplex::extractMorseComplex() {
-	BoundaryEnumerator enumerator(*this);
-	Cube alpha;
-	Cube beta;
-
-	for (uint8_t dim = 1; dim < 4; ++dim) {
-		for (const Cube& c : C[dim]) {
-			priority_queue<Cube> Qbfs;
-
-			enumerator.setBoundaryEnumerator(c);
-			while (enumerator.hasNextFace()) {
-				if (find(C[c.dim-1].begin(), C[c.dim-1].end(), enumerator.nextFace) != C[c.dim-1].end()) {
-					faces[c].push_back(enumerator.nextFace);
-				}
-				auto it = V.find(enumerator.nextFace);
-				if (it != V.end()) { Qbfs.push(enumerator.nextFace); }
-			}
-
-			while (!Qbfs.empty()) {
-				alpha = Qbfs.top();
-				Qbfs.pop();
-				beta = V[alpha];
-
-				enumerator.setBoundaryEnumerator(beta);
-				while (enumerator.hasNextFace()) {
-					if (enumerator.nextFace != alpha) {
-						if (find(C[c.dim-1].begin(), C[c.dim-1].end(), enumerator.nextFace)
-									!= C[c.dim-1].end()) { faces[c].push_back(enumerator.nextFace); }
-						else {
-							auto it = V.find(enumerator.nextFace);
-							if (it != V.end()) { Qbfs.push(enumerator.nextFace); }
-						}
-					}
-				}
-			}
-		}
-	}
-}
-
-
-void MorseComplex::traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated) const {
-	unordered_map<Cube, size_t, Cube::Hash> nrIn;
-	unordered_map<Cube, size_t, Cube::Hash> count;
-	if (coordinated) {
-		traverseFlow(s, flow, false);
-		for (const tuple<Cube, Cube, Cube>& f : flow) {
-			auto it = nrIn.find(get<2>(f));
-			if (it != nrIn.end()) { ++(it->second); }
-			else { nrIn.emplace(get<2>(f), 1); }
-		}
-		flow.clear();
-	}
-
-	BoundaryEnumerator enumerator(*this);
-	priority_queue<Cube> queue;
-	set<Cube> seen;
-	queue.push(s);
-	seen.insert(s);
-
-	Cube a;
-	Cube b;
-	Cube c;
-	while (!queue.empty()) {
-		a = queue.top(); queue.pop();
-		enumerator.setBoundaryEnumerator(a);
-		while (enumerator.hasNextFace()) {
-			b = enumerator.nextFace;
-			c = a;
-			if (find(C[b.dim].begin(), C[b.dim].end(), b) != C[b.dim].end()) { c = b; }
-			else {
-				auto it = V.find(b);
-				if (it != V.end()) { c = it->second; }
-			}
-			if (c != a) {
-				flow.push_back(tuple(a, b, c));
-				if (c != b) {
-					auto it = seen.find(c);
-					if (it == seen.end()) {
-						if (coordinated) {
-							auto itCount = count.find(c);
-							auto itNrIn = nrIn.find(c);
-							if (itCount != count.end()) { 
-								++(itCount->second);
-								if (itCount->second != itNrIn->second) { continue; }
-							}
-							else {
-								count.emplace(c, 1);
-								if (itNrIn->second != 1) { continue; }
-							}
-						}
-						queue.push(c);
-						seen.insert(c);
-					}
-				}
-			}
-		}
-	}
-}
-
-
-void MorseComplex::traverseCoflow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated) const {
-	unordered_map<Cube, size_t, Cube::Hash> nrIn;
-	unordered_map<Cube, size_t, Cube::Hash> count;
-	if (coordinated) {
-		traverseCoflow(s, flow, false);
-		for (const tuple<Cube, Cube, Cube>& f : flow) {
-			auto it = nrIn.find(get<2>(f));
-			if (it != nrIn.end()) { ++(it->second); }
-			else { nrIn.emplace(get<2>(f), 1); }
-		}
-		flow.clear();
-	}
-
-	CoboundaryEnumerator enumerator(*this);
-	priority_queue<Cube, vector<Cube>, ReverseOrder> queue;
-	set<Cube> seen;
-	queue.push(s);
-	seen.insert(s);
-
-	Cube a;
-	Cube b;
-	Cube c;
-	while (!queue.empty()) {
-		a = queue.top(); queue.pop();
-		enumerator.setCoboundaryEnumerator(a);
-		while (enumerator.hasNextCoface()) {
-			b = enumerator.nextCoface;
-			c = a;
-			if (find(C[b.dim].begin(), C[b.dim].end(), b) != C[b.dim].end()) { c = b; }
-			else {
-				auto it = coV.find(b);
-				if (it != coV.end()) { c = it->second; }
-			}
-			if (c != a) {
-				flow.push_back(tuple(a, b, c));
-				if (c != b) {
-					auto it = seen.find(c);
-					if (it == seen.end()) {
-						if (coordinated) {
-							auto itCount = count.find(c);
-							auto itNrIn = nrIn.find(c);
-							if (itCount != count.end()) { 
-								++(itCount->second);
-								if (itCount->second != itNrIn->second) { continue; }
-							}
-							else {
-								count.emplace(c, 1);
-								if (itNrIn->second != 1) { continue; }
-							}
-						}
-						queue.push(c);
-						seen.insert(c);
 					}
 				}
 			}
@@ -541,23 +395,6 @@ vector<pair<Cube, uint8_t>> MorseComplex::getMorseCoboundary(const Cube& s) cons
 }
 
 
-void MorseComplex::getConnections(const Cube&s, const Cube& t, vector<tuple<Cube, Cube, Cube>>& connections) const {
-	set<Cube> active;
-	active.insert(t);
-
-	vector<tuple<Cube, Cube, Cube>> flow;
-	traverseCoflow(t, flow);
-	for (const tuple<Cube, Cube, Cube>& t : flow) { active.insert(get<2>(t)); }
-
-	flow.clear();
-	traverseFlow(s, flow);
-	for (const tuple<Cube, Cube, Cube>& t : flow) {
-		auto it = active.find(get<1>(t));
-		if (it != active.end()) { connections.push_back(t); }
-	}
-}
-
-
 void MorseComplex::extractMorseSkeleton(const value_t& threshold) {
 	vector<tuple<Cube, Cube, Cube>> flow;
 	for (uint8_t dim = 0; dim < 4; ++dim) {
@@ -578,28 +415,6 @@ void MorseComplex::extractMorseSkeleton(const value_t& threshold) {
 			morseSkeletonPixels.insert(p);
 		}
 
-	}
-}
-
-
-void MorseComplex::cancelPair(const Cube&s, const Cube& t) {
-	vector<tuple<Cube, Cube, Cube>> connection;
-	getConnections(s, t, connection);
-
-	C[s.dim].erase(remove(C[s.dim].begin(), C[s.dim].end(), s), C[s.dim].end());
-	C[t.dim].erase(remove(C[t.dim].begin(), C[t.dim].end(), t), C[t.dim].end());
-
-	for (tuple<Cube, Cube, Cube> con : connection) {
-		if (get<1>(con) != get<2>(con)) {
-			auto it = V.find(get<1>(con));
-			if (it != V.end()) { V.erase(it); }
-			else { cerr << "Error: key not found!" << endl; exit(EXIT_FAILURE); }
-			it = coV.find(get<2>(con));
-			if (it != coV.end()) { coV.erase(it); }
-			else { cerr << "Error: key not found!" << endl; exit(EXIT_FAILURE);}
-		}
-		V.emplace(get<1>(con), get<0>(con));
-		coV.emplace(get<0>(con), get<1>(con));
 	}
 }
 
@@ -757,7 +572,16 @@ void MorseComplex::checkV() const {
 			}
 		}
 	}
+	cout << "Gradient vectorfield is ok!" << endl;
 }
+
+
+value_t MorseComplex::getPerturbation() const {
+	return perturbation;
+}
+
+
+vector<vector<Cube>> MorseComplex::getCriticalCells() const { return C; }
 
 
 vector<vector<size_t>> MorseComplex::getNumberOfCriticalCells(const value_t& threshold) const {
@@ -1108,7 +932,7 @@ void MorseComplex::addValue(const index_t& x, const index_t& y, const index_t& z
 }
 
 
-value_t MorseComplex::findMinimumDistance() {
+value_t MorseComplex::getMinimumDistance() {
     value_t minDistance = std::numeric_limits<value_t>::max();
 	bool needPerturbation = false;
     for (size_t x1 = 0; x1 < shape[0]; ++x1) {
@@ -1199,4 +1023,203 @@ Cube MorseComplex::unpairedFace(const Cube& cube, const vector<Cube>& L) {
 	}
 	
 	return cube;
+}
+
+
+void MorseComplex::extractMorseComplex() {
+	BoundaryEnumerator enumerator(*this);
+	Cube alpha;
+	Cube beta;
+
+	for (uint8_t dim = 1; dim < 4; ++dim) {
+		for (const Cube& c : C[dim]) {
+			priority_queue<Cube> Qbfs;
+
+			enumerator.setBoundaryEnumerator(c);
+			while (enumerator.hasNextFace()) {
+				if (find(C[c.dim-1].begin(), C[c.dim-1].end(), enumerator.nextFace) != C[c.dim-1].end()) {
+					faces[c].push_back(enumerator.nextFace);
+				}
+				auto it = V.find(enumerator.nextFace);
+				if (it != V.end()) { Qbfs.push(enumerator.nextFace); }
+			}
+
+			while (!Qbfs.empty()) {
+				alpha = Qbfs.top();
+				Qbfs.pop();
+				beta = V[alpha];
+
+				enumerator.setBoundaryEnumerator(beta);
+				while (enumerator.hasNextFace()) {
+					if (enumerator.nextFace != alpha) {
+						if (find(C[c.dim-1].begin(), C[c.dim-1].end(), enumerator.nextFace)
+									!= C[c.dim-1].end()) { faces[c].push_back(enumerator.nextFace); }
+						else {
+							auto it = V.find(enumerator.nextFace);
+							if (it != V.end()) { Qbfs.push(enumerator.nextFace); }
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+
+void MorseComplex::traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated) const {
+	unordered_map<Cube, size_t, Cube::Hash> nrIn;
+	unordered_map<Cube, size_t, Cube::Hash> count;
+	if (coordinated) {
+		traverseFlow(s, flow, false);
+		for (const tuple<Cube, Cube, Cube>& f : flow) {
+			auto it = nrIn.find(get<2>(f));
+			if (it != nrIn.end()) { ++(it->second); }
+			else { nrIn.emplace(get<2>(f), 1); }
+		}
+		flow.clear();
+	}
+
+	BoundaryEnumerator enumerator(*this);
+	priority_queue<Cube> queue;
+	set<Cube> seen;
+	queue.push(s);
+	seen.insert(s);
+
+	Cube a;
+	Cube b;
+	Cube c;
+	while (!queue.empty()) {
+		a = queue.top(); queue.pop();
+		enumerator.setBoundaryEnumerator(a);
+		while (enumerator.hasNextFace()) {
+			b = enumerator.nextFace;
+			c = a;
+			if (find(C[b.dim].begin(), C[b.dim].end(), b) != C[b.dim].end()) { c = b; }
+			else {
+				auto it = V.find(b);
+				if (it != V.end()) { c = it->second; }
+			}
+			if (c != a) {
+				flow.push_back(tuple(a, b, c));
+				if (c != b) {
+					auto it = seen.find(c);
+					if (it == seen.end()) {
+						if (coordinated) {
+							auto itCount = count.find(c);
+							auto itNrIn = nrIn.find(c);
+							if (itCount != count.end()) { 
+								++(itCount->second);
+								if (itCount->second != itNrIn->second) { continue; }
+							}
+							else {
+								count.emplace(c, 1);
+								if (itNrIn->second != 1) { continue; }
+							}
+						}
+						queue.push(c);
+						seen.insert(c);
+					}
+				}
+			}
+		}
+	}
+}
+
+
+void MorseComplex::traverseCoflow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated) const {
+	unordered_map<Cube, size_t, Cube::Hash> nrIn;
+	unordered_map<Cube, size_t, Cube::Hash> count;
+	if (coordinated) {
+		traverseCoflow(s, flow, false);
+		for (const tuple<Cube, Cube, Cube>& f : flow) {
+			auto it = nrIn.find(get<2>(f));
+			if (it != nrIn.end()) { ++(it->second); }
+			else { nrIn.emplace(get<2>(f), 1); }
+		}
+		flow.clear();
+	}
+
+	CoboundaryEnumerator enumerator(*this);
+	priority_queue<Cube, vector<Cube>, ReverseOrder> queue;
+	set<Cube> seen;
+	queue.push(s);
+	seen.insert(s);
+
+	Cube a;
+	Cube b;
+	Cube c;
+	while (!queue.empty()) {
+		a = queue.top(); queue.pop();
+		enumerator.setCoboundaryEnumerator(a);
+		while (enumerator.hasNextCoface()) {
+			b = enumerator.nextCoface;
+			c = a;
+			if (find(C[b.dim].begin(), C[b.dim].end(), b) != C[b.dim].end()) { c = b; }
+			else {
+				auto it = coV.find(b);
+				if (it != coV.end()) { c = it->second; }
+			}
+			if (c != a) {
+				flow.push_back(tuple(a, b, c));
+				if (c != b) {
+					auto it = seen.find(c);
+					if (it == seen.end()) {
+						if (coordinated) {
+							auto itCount = count.find(c);
+							auto itNrIn = nrIn.find(c);
+							if (itCount != count.end()) { 
+								++(itCount->second);
+								if (itCount->second != itNrIn->second) { continue; }
+							}
+							else {
+								count.emplace(c, 1);
+								if (itNrIn->second != 1) { continue; }
+							}
+						}
+						queue.push(c);
+						seen.insert(c);
+					}
+				}
+			}
+		}
+	}
+}
+
+
+void MorseComplex::getConnections(const Cube&s, const Cube& t, vector<tuple<Cube, Cube, Cube>>& connections) const {
+	set<Cube> active;
+	active.insert(t);
+
+	vector<tuple<Cube, Cube, Cube>> flow;
+	traverseCoflow(t, flow);
+	for (const tuple<Cube, Cube, Cube>& t : flow) { active.insert(get<2>(t)); }
+
+	flow.clear();
+	traverseFlow(s, flow);
+	for (const tuple<Cube, Cube, Cube>& t : flow) {
+		auto it = active.find(get<1>(t));
+		if (it != active.end()) { connections.push_back(t); }
+	}
+}
+
+
+void MorseComplex::cancelPair(const Cube&s, const Cube& t) {
+	vector<tuple<Cube, Cube, Cube>> connection;
+	getConnections(s, t, connection);
+
+	C[s.dim].erase(remove(C[s.dim].begin(), C[s.dim].end(), s), C[s.dim].end());
+	C[t.dim].erase(remove(C[t.dim].begin(), C[t.dim].end(), t), C[t.dim].end());
+
+	for (tuple<Cube, Cube, Cube> con : connection) {
+		if (get<1>(con) != get<2>(con)) {
+			auto it = V.find(get<1>(con));
+			if (it != V.end()) { V.erase(it); }
+			else { cerr << "Error: key not found!" << endl; exit(EXIT_FAILURE); }
+			it = coV.find(get<2>(con));
+			if (it != coV.end()) { coV.erase(it); }
+			else { cerr << "Error: key not found!" << endl; exit(EXIT_FAILURE);}
+		}
+		V.emplace(get<1>(con), get<0>(con));
+		coV.emplace(get<0>(con), get<1>(con));
+	}
 }

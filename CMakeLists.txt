@@ -10,18 +10,32 @@ endif()
 
 project(DMT)
 
+find_package(pybind11 REQUIRED)
+
+pybind11_add_module(morse_complex
+    src/dmt.cpp
+    src/data_structures.cpp
+    src/enumerators.cpp 
+    src/utils.cpp
+)
+
 add_executable(CancelPairs
     src/cancel_pairs.cpp
-    src/utils.cpp
     src/data_structures.cpp
     src/enumerators.cpp
+    src/utils.cpp
 )
 
 add_executable(DMT
     src/main.cpp
-	src/utils.cpp
     src/data_structures.cpp
     src/enumerators.cpp
+    src/utils.cpp
+)
+
+set_target_properties(morse_complex PROPERTIES
+    CXX_STANDARD 17
+    CXX_EXTENSIONS OFF
 )
 
 set_target_properties(CancelPairs PROPERTIES

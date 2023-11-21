@@ -21,7 +21,7 @@ void print_usage_and_exit(int exit_code) {
          << endl
          << "  --help, -h                      print this screen" << endl
          << "  --threshold, -t                 cancel pairs up to threshold" << endl
-         << "  --mindist, -m                   minimum distance of pixel values" << endl
+         << "  --epsilon, -e                   minimum distance of pixel values for perturbation" << endl
          << "  --print, -p                     print result to console" << endl
          << "  --save, -s                      save result to file" << endl            
          << endl;
@@ -33,6 +33,7 @@ void print_usage_and_exit(int exit_code) {
 int main(int argc, char** argv) {
     string directory = "";
 	fileFormat format;
+    string saveName = "result.json";
     value_t threshold = 1;
     value_t minDistance = INFTY;
     bool print = false;
@@ -43,10 +44,12 @@ int main(int argc, char** argv) {
 		const string arg(argv[i]);
 		if (arg == "--help" || arg == "-h") { print_usage_and_exit(0); }
         else if (arg == "--threshold" || arg == "-t") { threshold = stod(argv[++i]); }
-        else if (arg == "--mindist" || arg == "-m") { minDistance = stod(argv[++i]); }
+        else if (arg == "--epsilon" || arg == "-e") { minDistance = stod(argv[++i]); }
         else if (arg == "--print" || arg == "-p") { print = true; }
-        else if (arg == "--print" || arg == "-p") { print = true; }
-        else if (arg == "--save" || arg == "-s") { save = true; } 
+        else if (arg == "--save" || arg == "-s") {
+            save = true;
+            saveName = argv[++i];
+        } 
         else { directory = argv[i]; } 
 	}
 
@@ -81,7 +84,7 @@ int main(int argc, char** argv) {
         if (print) { cout << "Processing Lower Stars ..." << endl; }
         mc.processLowerStars();
 
-        if (print) { cout << "Checking gradient vectorfield ..." << endl; }
+        if (print) { cout << "Checking gradient vectorfield ..."; }
         mc.checkV();
 
         if (print) {
@@ -95,7 +98,7 @@ int main(int argc, char** argv) {
         if (print) { cout << endl << "Canceling pairs >= " << threshold << " ... " << endl; }
         mc.cancelPairsAbove(threshold, print);
 
-        if (print) { cout << endl << "Checking gradient vectorfield ..." << endl; }
+        if (print) { cout << endl << "Checking gradient vectorfield ..."; }
         mc.checkV();
 
         if (save) {
@@ -108,8 +111,8 @@ int main(int argc, char** argv) {
     if (save) {
         if (print) {
             cout << "-----------------------------------------------------------------------------------" << endl;
-            cout << "Saving results to " << directory + "/result.json" << endl;
+            cout << "Saving results to " << directory + "/" + saveName << endl;
         }
-        df.saveToJson(directory + "/result.json", threshold);
+        df.saveToJson(directory + "/" + saveName, threshold);
     }
 }

@@ -103,8 +103,9 @@ int main(int argc, char** argv) {
 
     if (print) {
         cout << endl << "Morse boundary:" << endl;
+        vector<vector<Cube>> C = mc.getCriticalCells();
         for (int dim = 0; dim < 4; ++dim) {
-            for (const Cube& c : mc.C[dim]) {
+            for (const Cube& c : C[dim]) {
                 cout << "c: "; c.print(); cout << endl;
                 mc.printMorseBoundary(c);
                 cout << endl;
