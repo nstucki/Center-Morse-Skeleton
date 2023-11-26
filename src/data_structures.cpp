@@ -494,6 +494,83 @@ void MorseComplex::cancelPairsAbove(const value_t& threshold, bool print) {
 }
 
 
+void MorseComplex::cancelPairsBelowCoordinated(const value_t& threshold, bool print) {
+	if (print) {
+		cout << "Critical cells:" << endl;
+		printC(threshold);
+	}
+
+	for (uint8_t dim = 0; dim < 4; ++dim) { sort(C.begin(), C.end()); }
+
+	bool canceled = true;
+	vector<Cube> cancelable;
+	while (canceled) {
+		canceled = false;
+		for (uint8_t dim = 4; dim-- > 1;) {
+			for (auto it = C[dim].rbegin(); it != C[dim].rend(); ++it) {
+				Cube s = *it;
+				if (s.birth >= threshold) { continue; }
+
+				vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
+
+				cancelable.clear();
+				for (const pair<Cube, uint8_t> b : boundary) {
+					if (get<1>(b) == 1) { cancelable.push_back(get<0>(b)); }
+				}
+				if (cancelable.size() == 0) { continue; }
+				sort(cancelable.begin(), cancelable.end());
+
+				cancelPair(s, cancelable.back());
+				canceled = true;
+
+				if (print) { printC(threshold); }
+				break;
+			}
+			if (canceled) { break; }
+		}
+	}
+	if (print) { cout << endl; }
+}
+
+
+void MorseComplex::cancelPairsAboveCoordinated(const value_t& threshold, bool print) {
+	if (print) {
+		cout << "Critical cells:" << endl;
+		printC(threshold);
+	}
+
+	for (uint8_t dim = 0; dim < 4; ++dim) { sort(C.begin(), C.end()); }
+
+	bool canceled = true;
+	vector<Cube> cancelable;
+	while (canceled) {
+		canceled = false;
+		for (uint8_t dim = 0; dim < 3; ++dim) {
+			for (const Cube& t : C[dim]) {
+				if (t.birth < threshold) { continue; }
+
+				vector<pair<Cube, uint8_t>> coboundary = getMorseCoboundary(t);
+
+				cancelable.clear();
+				for (const pair<Cube, uint8_t> c : coboundary) {
+					if (get<1>(c) == 1) { cancelable.push_back(get<0>(c)); }
+				}
+				if (cancelable.size() == 0) { continue; }
+				sort(cancelable.begin(), cancelable.end());
+
+				cancelPair(cancelable.front(), t);
+				canceled = true;
+
+				if (print) { printC(threshold); }
+				break;
+			}
+			if (canceled) { break; }
+		}
+	}
+	if (print) { cout << endl; }
+}
+
+
 auto boundaryComparator = [](const auto& lhs, const auto& rhs) {
     return std::get<0>(lhs) < std::get<0>(rhs);
 };
@@ -573,6 +650,34 @@ void MorseComplex::checkV() const {
 		}
 	}
 	cout << "Gradient vectorfield is ok!" << endl;
+}
+
+
+void MorseComplex::checkBoundaryAndCoboundary() const {
+	bool foundCoboundary;
+	 for (uint8_t dim = 1; dim < 4; ++dim) {
+        for (Cube c : C[dim]) {
+            vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(c);
+            for (pair<Cube, uint8_t> b : boundary) {
+				foundCoboundary = false;
+                vector<pair<Cube, uint8_t>> coboundary = getMorseCoboundary(get<0>(b));
+                for (pair<Cube, uint8_t> a : coboundary) {
+                    if (get<0>(a) == c) {
+						foundCoboundary = true;
+						if (get<1>(a) != get<1>(b)) {
+							cerr << "Mistake in Boundary / Coboundary computation!";
+							exit(EXIT_FAILURE);
+						}
+					}
+                }
+				if (!foundCoboundary) {
+					cerr << "Mistake in Boundary / Coboundary computation!";
+					exit(EXIT_FAILURE);
+				}
+            }
+        }
+    }
+	cout << "Boundary and Coboundary computations are ok!" << endl;
 }
 
 

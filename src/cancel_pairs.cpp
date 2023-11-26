@@ -93,10 +93,10 @@ int main(int argc, char** argv) {
         }
 
         if (print) { cout << endl << "Canceling pairs < " << threshold << " ... " << endl; }
-        mc.cancelPairsBelow(threshold, print);
+        mc.cancelPairsBelowCoordinated(threshold, print);
 
         if (print) { cout << endl << "Canceling pairs >= " << threshold << " ... " << endl; }
-        mc.cancelPairsAbove(threshold, print);
+        mc.cancelPairsAboveCoordinated(threshold, print);
 
         if (print) { cout << endl << "Checking gradient vectorfield ..."; }
         mc.checkV();

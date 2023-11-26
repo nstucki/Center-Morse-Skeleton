@@ -86,8 +86,11 @@ public:
 	void extractMorseSkeleton(const value_t& threshold);
 	void cancelPairsBelow(const value_t& threshold, bool print=true);
 	void cancelPairsAbove(const value_t& threshold, bool print=true);
+	void cancelPairsBelowCoordinated(const value_t& threshold, bool print=true);
+	void cancelPairsAboveCoordinated(const value_t& threshold, bool print=true);
 	void cancelClosePairsBelow(const value_t& threshold, bool print=true);
 	void checkV() const;
+	void checkBoundaryAndCoboundary() const;
 	value_t getPerturbation() const;
 	vector<vector<Cube>> getCriticalCells() const;
 	vector<vector<size_t>> getNumberOfCriticalCells(const value_t& threshold=INFTY) const;
