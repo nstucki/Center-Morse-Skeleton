@@ -57,44 +57,46 @@ int main(int argc, char** argv) {
         else { filename = argv[i]; } 
 	}
 
-    // if (filename.empty()) { print_usage_and_exit(-1); } 
-    // if (filename.find(".txt")!= string::npos) { format = PERSEUS; } 
-    // else if (filename.find(".npy")!= string::npos) { format = NUMPY; } 
-    // else if (filename.find(".complex")!= string::npos) { format = DIPHA; } 
-    // else {
-	// 	cerr << "unknown input file format! (the filename extension should be .txt/.npy/.complex): " << filename << endl;
-	// 	exit(-1);
-	// }
-    // ifstream fileStream(filename);
-	// if (!filename.empty() && fileStream.fail()) {
-	// 	cerr << "couldn't open file " << filename << endl;
-	// 	exit(-1);
-	// }
+    if (filename.empty()) { print_usage_and_exit(-1); } 
+    if (filename.find(".txt")!= string::npos) { format = PERSEUS; } 
+    else if (filename.find(".npy")!= string::npos) { format = NUMPY; } 
+    else if (filename.find(".complex")!= string::npos) { format = DIPHA; } 
+    else {
+		cerr << "unknown input file format! (the filename extension should be .txt/.npy/.complex): " << filename << endl;
+		exit(-1);
+	}
+    ifstream fileStream(filename);
+	if (!filename.empty() && fileStream.fail()) {
+		cerr << "couldn't open file " << filename << endl;
+		exit(-1);
+	}
 
-    // vector<value_t> input;
-    // vector<index_t> shape;
-    // readImage(filename, format, input, shape);
+    vector<value_t> input;
+    vector<index_t> shape;
+    readImage(filename, format, input, shape);
 
-    //MorseComplex mc(std::move(input), std::move(shape));
+    MorseComplex mc(std::move(input), std::move(shape));
 
     // if (plot) { cout << "Image:" << endl; mc.plotImage(); cout << endl; }
 
-    // mc.perturbImage(epsilon);
+    mc.perturbImage(epsilon);
 
     // if (plot) { cout << "Perturbed image:" << endl; mc.plotImage(); cout << endl; }
 
-    // mc.processLowerStars();
-    // mc.checkV();
+    mc.processLowerStars();
+    mc.checkV();
 
-    // if (print) { mc.printC(threshold); cout << endl; }
+    mc.printC(threshold); cout << endl;
 
-    // if (print) { cout << "canceling < " << threshold << " ..." << endl; }
-    // mc.cancelPairsBelow(threshold, print);
+    cout << "canceling < " << threshold << " ..." << endl;
+    mc.cancelPairsBelowCoordinated(threshold, print);
 
-    // if (print) { cout << "canceling >= " << threshold << " ..." << endl; }
-    // mc.cancelPairsAbove(threshold, print);
+    mc.checkV();
 
-    // mc.checkV();
+    cout << "canceling >= " << threshold << " ..." << endl;
+    mc.cancelPairsAboveCoordinated(threshold, print);
+
+    mc.checkV();
 
     // if (print) {
     //     cout << endl << "Morse boundary:" << endl;
@@ -108,40 +110,40 @@ int main(int argc, char** argv) {
     //     }
     // }
 
-    directory = filename;
+    //directory = filename;
 
-    for (const auto& entry : fs::directory_iterator(directory)) {
-        string fileName = entry.path().filename().string();
-        cout << "-----------------------------------------------------------------------" << endl;
-        cout << "processing " << fileName << endl;
+    // for (const auto& entry : fs::directory_iterator(directory)) {
+    //     string fileName = entry.path().filename().string();
+    //     cout << "-----------------------------------------------------------------------" << endl;
+    //     cout << "processing " << fileName << endl;
 
-        if (fileName.empty()) { continue; }
-        if (fileName.find(".txt")!= string::npos) { format = PERSEUS; }
-        else if (fileName.find(".npy")!= string::npos) { format = NUMPY; } 
-        else if (fileName.find(".complex")!= string::npos) { format = DIPHA; }
-        else { cerr << "File format is not supported!" << endl; continue; }
+    //     if (fileName.empty()) { continue; }
+    //     if (fileName.find(".txt")!= string::npos) { format = PERSEUS; }
+    //     else if (fileName.find(".npy")!= string::npos) { format = NUMPY; } 
+    //     else if (fileName.find(".complex")!= string::npos) { format = DIPHA; }
+    //     else { cerr << "File format is not supported!" << endl; continue; }
 
-        string filePath = entry.path().string();
-        ifstream fileStream(filePath);
-        if (!fileName.empty() && fileStream.fail()) {
-	        cerr << "Couldn't open file!" << endl;
-	        exit(-1);
-	    }
+    //     string filePath = entry.path().string();
+    //     ifstream fileStream(filePath);
+    //     if (!fileName.empty() && fileStream.fail()) {
+	//         cerr << "Couldn't open file!" << endl;
+	//         exit(-1);
+	//     }
 
-        vector<value_t> input;
-        vector<index_t> shape;
-        readImage(filePath, format, input, shape);
+    //     vector<value_t> input;
+    //     vector<index_t> shape;
+    //     readImage(filePath, format, input, shape);
 
-        MorseComplex mc(std::move(input), std::move(shape));
+    //     MorseComplex mc(std::move(input), std::move(shape));
 
-        mc.perturbImage(epsilon);
+    //     mc.perturbImage(epsilon);
 
-        mc.processLowerStars();
+    //     mc.processLowerStars();
 
-        cout << "Checking gradient vectorfield ... ";
-        mc.checkV();
+    //     cout << "Checking gradient vectorfield ... ";
+    //     mc.checkV();
 
-        cout << "Checking boundaries and coboundaries ... ";
-        mc.checkBoundaryAndCoboundary();
-    }
+    //     cout << "Checking boundaries and coboundaries ... ";
+    //     mc.checkBoundaryAndCoboundary();
+    // }
 }

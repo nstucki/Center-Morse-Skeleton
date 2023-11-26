@@ -500,7 +500,7 @@ void MorseComplex::cancelPairsBelowCoordinated(const value_t& threshold, bool pr
 		printC(threshold);
 	}
 
-	for (uint8_t dim = 0; dim < 4; ++dim) { sort(C.begin(), C.end()); }
+	for (uint8_t dim = 0; dim < 4; ++dim) { sort(C[dim].begin(), C[dim].end()); }
 
 	bool canceled = true;
 	vector<Cube> cancelable;
@@ -509,6 +509,7 @@ void MorseComplex::cancelPairsBelowCoordinated(const value_t& threshold, bool pr
 		for (uint8_t dim = 4; dim-- > 1;) {
 			for (auto it = C[dim].rbegin(); it != C[dim].rend(); ++it) {
 				Cube s = *it;
+
 				if (s.birth >= threshold) { continue; }
 
 				vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
@@ -539,7 +540,7 @@ void MorseComplex::cancelPairsAboveCoordinated(const value_t& threshold, bool pr
 		printC(threshold);
 	}
 
-	for (uint8_t dim = 0; dim < 4; ++dim) { sort(C.begin(), C.end()); }
+	for (uint8_t dim = 0; dim < 4; ++dim) { sort(C[dim].begin(), C[dim].end()); }
 
 	bool canceled = true;
 	vector<Cube> cancelable;
