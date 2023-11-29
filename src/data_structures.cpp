@@ -425,6 +425,8 @@ void MorseComplex::cancelPairsBelow(const value_t& threshold, bool print) {
 		printC(threshold);
 	}
 
+	if (threshold == -INFTY) { return; }
+
 	bool canceled = true;
 	vector<Cube> cancelable;
 
@@ -462,6 +464,8 @@ void MorseComplex::cancelPairsAbove(const value_t& threshold, bool print) {
 		printC(threshold);
 	}
 
+	if (threshold == INFTY) { return; }
+
 	bool canceled = true;
 	vector<Cube> cancelable;
 
@@ -494,11 +498,13 @@ void MorseComplex::cancelPairsAbove(const value_t& threshold, bool print) {
 }
 
 
-void MorseComplex::cancelPairsBelowCoordinated(const value_t& threshold, bool print) {
+void MorseComplex::cancelPairsCoordinatedBelow(const value_t& threshold, bool print) {
 	if (print) {
 		cout << "Critical cells:" << endl;
 		printC(threshold);
 	}
+
+	if (threshold == -INFTY) { return; }
 
 	for (uint8_t dim = 0; dim < 4; ++dim) { sort(C[dim].begin(), C[dim].end()); }
 
@@ -534,11 +540,13 @@ void MorseComplex::cancelPairsBelowCoordinated(const value_t& threshold, bool pr
 }
 
 
-void MorseComplex::cancelPairsAboveCoordinated(const value_t& threshold, bool print) {
+void MorseComplex::cancelPairsCoordinatedAbove(const value_t& threshold, bool print) {
 	if (print) {
 		cout << "Critical cells:" << endl;
 		printC(threshold);
 	}
+
+	if (threshold == INFTY) { return; }
 
 	for (uint8_t dim = 0; dim < 4; ++dim) { sort(C[dim].begin(), C[dim].end()); }
 

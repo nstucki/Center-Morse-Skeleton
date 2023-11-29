@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
     string filename = "";
     string directory = "";
 	fileFormat format;
-    value_t threshold = 1;
+    value_t threshold = INFTY;
     value_t epsilon = INFTY;
     bool print = false;
     bool plot = false;
@@ -89,12 +89,12 @@ int main(int argc, char** argv) {
     mc.printC(threshold); cout << endl;
 
     cout << "canceling < " << threshold << " ..." << endl;
-    mc.cancelPairsBelowCoordinated(threshold, print);
+    mc.cancelPairsCoordinatedBelow(threshold, print);
 
     mc.checkV();
 
     cout << "canceling >= " << threshold << " ..." << endl;
-    mc.cancelPairsAboveCoordinated(threshold, print);
+    mc.cancelPairsCoordinatedAbove(threshold, print);
 
     mc.checkV();
 

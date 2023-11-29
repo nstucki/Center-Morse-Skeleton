@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
     string directory = "";
 	fileFormat format;
     string saveName = "result.json";
-    value_t threshold = 1;
+    value_t threshold = INFTY;
     value_t minDistance = INFTY;
     bool print = false;
 	bool save = false;
@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
 
         string fileName = entry.path().filename().string();
         if (print) { cout << "-----------------------------------------------------------------------------------" << endl; }
-        if (print) { cout << "Processing " << fileName << ":" << endl; }
+        if (print) { cout << "Processing " << directory << "/" << fileName << ":" << endl; }
 
         if (fileName.empty()) { continue; }
         if (fileName.find(".txt")!= string::npos) { format = PERSEUS; }
@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
         if (print) { cout << "Processing Lower Stars ..." << endl; }
         mc.processLowerStars();
 
-        if (print) { cout << "Checking gradient vectorfield ..."; }
+        if (print) { cout << "Checking gradient vectorfield ... "; }
         mc.checkV();
 
         if (print) {
@@ -93,12 +93,12 @@ int main(int argc, char** argv) {
         }
 
         if (print) { cout << endl << "Canceling pairs < " << threshold << " ... " << endl; }
-        mc.cancelPairsBelowCoordinated(threshold, print);
+        mc.cancelPairsCoordinatedBelow(threshold, print);
 
         if (print) { cout << endl << "Canceling pairs >= " << threshold << " ... " << endl; }
-        mc.cancelPairsAboveCoordinated(threshold, print);
+        mc.cancelPairsCoordinatedAbove(threshold, print);
 
-        if (print) { cout << endl << "Checking gradient vectorfield ..."; }
+        if (print) { cout << endl << "Checking gradient vectorfield ... "; }
         mc.checkV();
 
         if (save) {
