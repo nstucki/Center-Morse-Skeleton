@@ -84,6 +84,7 @@ public:
 	vector<pair<Cube, uint8_t>> getMorseBoundary(const Cube& s) const;
 	vector<pair<Cube, uint8_t>> getMorseCoboundary(const Cube& s) const;
 	void extractMorseSkeleton(const value_t& threshold);
+	vector<vector<index_t>> getMorseSkeletonPixels() const;
 	void cancelPairsBelow(const value_t& threshold=INFTY, bool print=true);
 	void cancelPairsAbove(const value_t& threshold=INFTY, bool print=true);
 	void cancelPairsCoordinatedBelow(const value_t& threshold=INFTY, bool print=true);

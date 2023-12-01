@@ -48,7 +48,9 @@ PYBIND11_MODULE(morse_complex, m) {
 
         .def("get_morse_coboundary", &MorseComplex::getMorseCoboundary, py::arg("cube"))
 
-        .def("extract_morse_skeleton", &MorseComplex::extractMorseSkeleton, py::arg("threshold"));
+        .def("extract_morse_skeleton", &MorseComplex::extractMorseSkeleton, py::arg("threshold"))
+
+        .def("get_morse_skeleton", &MorseComplex::getMorseSkeletonPixels);
 
         
 

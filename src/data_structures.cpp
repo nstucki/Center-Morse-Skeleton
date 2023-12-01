@@ -396,6 +396,9 @@ vector<pair<Cube, uint8_t>> MorseComplex::getMorseCoboundary(const Cube& s) cons
 
 
 void MorseComplex::extractMorseSkeleton(const value_t& threshold) {
+	morseSkeleton.clear();
+	morseSkeletonPixels.clear();
+	
 	vector<tuple<Cube, Cube, Cube>> flow;
 	for (uint8_t dim = 0; dim < 4; ++dim) {
 		for (const Cube& c : C[dim]) {
@@ -416,6 +419,11 @@ void MorseComplex::extractMorseSkeleton(const value_t& threshold) {
 		}
 
 	}
+}
+
+
+vector<vector<index_t>> MorseComplex::getMorseSkeletonPixels() const { 
+	return vector<vector<index_t>>(morseSkeletonPixels.begin(), morseSkeletonPixels.end());
 }
 
 
