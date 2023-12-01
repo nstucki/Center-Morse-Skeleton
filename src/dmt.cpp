@@ -36,13 +36,15 @@ PYBIND11_MODULE(morse_complex, m) {
         
         .def("cancel_pairs_above", &MorseComplex::cancelPairsAbove, py::arg("threshold")=INFTY, py::arg("print")=false)
 
-        .def("cancel_pairs_coordinated_below", &MorseComplex::cancelPairsCoordinatedBelow, py::arg("threshold")=INFTY, py::arg("print")=false)
+        .def("cancel_pairs_coordinated_below", &MorseComplex::cancelPairsCoordinatedBelow, py::arg("threshold")=INFTY, py::arg("tolerance")=0, py::arg("print")=false)
         
-        .def("cancel_pairs_coordinated_above", &MorseComplex::cancelPairsCoordinatedAbove, py::arg("threshold")=INFTY, py::arg("print")=false)
+        .def("cancel_pairs_coordinated_above", &MorseComplex::cancelPairsCoordinatedAbove, py::arg("threshold")=INFTY, py::arg("tolerance")=0, py::arg("print")=false)
 
         .def("get_number_of_critical_cells", &MorseComplex::getNumberOfCriticalCells, py::arg("threshold")=INFTY)
 
         .def("get_critical_cells", &MorseComplex::getCriticalCells)
+
+         .def("get_critical_voxels", &MorseComplex::getCriticalVoxels)
 
         .def("get_morse_boundary", &MorseComplex::getMorseBoundary, py::arg("cube"))
 
@@ -57,13 +59,21 @@ PYBIND11_MODULE(morse_complex, m) {
 
     py::class_<Cube>(m, "Cube")
         .def_readonly("birth", &Cube::birth)
+
         .def_readonly("x", &Cube::x)
+
         .def_readonly("y", &Cube::y)
+
         .def_readonly("z", &Cube::z)
+
         .def_readonly("type", &Cube::type)
+
         .def_readonly("dim", &Cube::dim)
+
         .def("__repr__", [](Cube &self) {
           return "birth=" + to_string(self.birth) + ", x=" + to_string(self.x) + ", y=" + to_string(self.y) 
                     + ", z=" + to_string(self.z) + ", type=" + to_string(self.type) + ", dim=" + to_string(self.dim);
-        });
+        })
+        
+        .def("get_voxels", &Cube::getVertices);
 }

@@ -512,7 +512,7 @@ void MorseComplex::cancelPairsAbove(const value_t& threshold, bool print) {
 }
 
 
-void MorseComplex::cancelPairsCoordinatedBelow(const value_t& threshold, bool print) {
+void MorseComplex::cancelPairsCoordinatedBelow(const value_t& threshold, const value_t& tolerance, bool print) {
 	if (print) {
 		cout << "Critical cells:" << endl;
 		printC(threshold);
@@ -533,7 +533,7 @@ void MorseComplex::cancelPairsCoordinatedBelow(const value_t& threshold, bool pr
 			for (auto it = C[dim].rbegin(); it != C[dim].rend(); ++it) {
 				Cube s = *it;
 
-				if (s.birth >= threshold) { continue; }
+				if (s.birth >= threshold + tolerance) { continue; }
 
 				vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
 
@@ -557,7 +557,7 @@ void MorseComplex::cancelPairsCoordinatedBelow(const value_t& threshold, bool pr
 }
 
 
-void MorseComplex::cancelPairsCoordinatedAbove(const value_t& threshold, bool print) {
+void MorseComplex::cancelPairsCoordinatedAbove(const value_t& threshold, const value_t& tolerance, bool print) {
 	if (print) {
 		cout << "Critical cells:" << endl;
 		printC(threshold);
@@ -576,7 +576,7 @@ void MorseComplex::cancelPairsCoordinatedAbove(const value_t& threshold, bool pr
 		canceled = false;
 		for (uint8_t dim = 0; dim < 3; ++dim) {
 			for (const Cube& t : C[dim]) {
-				if (t.birth < threshold) { continue; }
+				if (t.birth < threshold - tolerance) { continue; }
 
 				vector<pair<Cube, uint8_t>> coboundary = getMorseCoboundary(t);
 
@@ -710,12 +710,22 @@ void MorseComplex::checkBoundaryAndCoboundary() const {
 }
 
 
-value_t MorseComplex::getPerturbation() const {
-	return perturbation;
-}
+value_t MorseComplex::getPerturbation() const { return perturbation; }
 
 
 vector<vector<Cube>> MorseComplex::getCriticalCells() const { return C; }
+
+
+vector<vector<vector<vector<index_t>>>> MorseComplex::getCriticalVoxels() const {
+	vector<vector<vector<vector<index_t>>>> criticalVoxels(4);
+	for (uint8_t dim = 0; dim < 4; ++dim) {
+		for (const Cube& c : C[dim]) {
+			criticalVoxels[dim].push_back(c.getVertices());
+		}
+	}
+
+	return criticalVoxels;
+}
 
 
 vector<vector<size_t>> MorseComplex::getNumberOfCriticalCells(const value_t& threshold) const {
