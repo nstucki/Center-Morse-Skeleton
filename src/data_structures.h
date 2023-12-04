@@ -87,8 +87,8 @@ public:
 	vector<vector<index_t>> getMorseSkeletonPixels() const;
 	void cancelPairsBelow(const value_t& threshold=INFTY, bool print=true);
 	void cancelPairsAbove(const value_t& threshold=INFTY, bool print=true);
-	void cancelPairsCoordinatedBelow(const value_t& threshold=INFTY, const value_t& tolerance=0, bool print=true);
-	void cancelPairsCoordinatedAbove(const value_t& threshold=INFTY, const value_t& tolerance=0, bool print=true);
+	void cancelPairsReverseBelow(const value_t& threshold=INFTY, bool print=true);
+	void cancelPairsReverseAbove(const value_t& threshold=INFTY, bool print=true);
 	void cancelClosePairsBelow(const value_t& threshold, bool print=true);
 	void checkV() const;
 	void checkBoundaryAndCoboundary() const;

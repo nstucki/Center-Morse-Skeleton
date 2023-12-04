@@ -89,12 +89,12 @@ int main(int argc, char** argv) {
     mc.printC(threshold); cout << endl;
 
     cout << "canceling < " << threshold << " ..." << endl;
-    mc.cancelPairsCoordinatedBelow(threshold, print);
+    mc.cancelPairsBelow(threshold, print);
 
     mc.checkV();
 
     cout << "canceling >= " << threshold << " ..." << endl;
-    mc.cancelPairsCoordinatedAbove(threshold, print);
+    mc.cancelPairsAbove(threshold, print);
 
     mc.checkV();
 

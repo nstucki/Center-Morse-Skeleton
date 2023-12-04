@@ -433,18 +433,21 @@ void MorseComplex::cancelPairsBelow(const value_t& threshold, bool print) {
 		printC(threshold);
 	}
 
-	if (threshold == -INFTY) { 
+	if (threshold == -INFTY) {
 		if (print) { cout << endl; }
 		return;
 	}
 
+	for (uint8_t dim = 0; dim < 4; ++dim) { sort(C[dim].begin(), C[dim].end()); }
+
 	bool canceled = true;
 	vector<Cube> cancelable;
-
-	while ((C[1].size() != 0 || C[2].size() != 0 || C[3].size() != 0) && canceled) {
+	while (canceled) {
 		canceled = false;
 		for (uint8_t dim = 4; dim-- > 1;) {
-			for (const Cube& s : C[dim]) {
+			for (auto it = C[dim].rbegin(); it != C[dim].rend(); ++it) {
+				Cube s = *it;
+
 				if (s.birth >= threshold) { continue; }
 
 				vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
@@ -457,9 +460,9 @@ void MorseComplex::cancelPairsBelow(const value_t& threshold, bool print) {
 				sort(cancelable.begin(), cancelable.end());
 
 				cancelPair(s, cancelable.back());
-				if (print) { printC(threshold); }
-
 				canceled = true;
+
+				if (print) { printC(threshold); }
 				break;
 			}
 			if (canceled) { break; }
@@ -480,29 +483,29 @@ void MorseComplex::cancelPairsAbove(const value_t& threshold, bool print) {
 		return;
 	}
 
+	for (uint8_t dim = 0; dim < 4; ++dim) { sort(C[dim].begin(), C[dim].end()); }
+
 	bool canceled = true;
 	vector<Cube> cancelable;
-
-	while ((C[1].size() != 0 || C[2].size() != 0 || C[3].size() != 0) && canceled) {
+	while (canceled) {
 		canceled = false;
-		for (uint8_t dim = 4; dim-- > 1;) {
-			for (const Cube& s : C[dim]) {
-				if (s.birth < threshold) { continue; }
+		for (uint8_t dim = 0; dim < 3; ++dim) {
+			for (const Cube& t : C[dim]) {
+				if (t.birth < threshold) { continue; }
 
-				vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
+				vector<pair<Cube, uint8_t>> coboundary = getMorseCoboundary(t);
 
 				cancelable.clear();
-				for (const pair<Cube, uint8_t> b : boundary) {
-					if (get<1>(b) == 1) { cancelable.push_back(get<0>(b)); }
+				for (const pair<Cube, uint8_t> c : coboundary) {
+					if (get<1>(c) == 1) { cancelable.push_back(get<0>(c)); }
 				}
 				if (cancelable.size() == 0) { continue; }
 				sort(cancelable.begin(), cancelable.end());
-				if (cancelable.back().birth < threshold) { continue; }
 
-				cancelPair(s, cancelable.back());
-				if (print) { printC(threshold); }
-
+				cancelPair(cancelable.front(), t);
 				canceled = true;
+
+				if (print) { printC(threshold); }
 				break;
 			}
 			if (canceled) { break; }
@@ -512,7 +515,7 @@ void MorseComplex::cancelPairsAbove(const value_t& threshold, bool print) {
 }
 
 
-void MorseComplex::cancelPairsCoordinatedBelow(const value_t& threshold, const value_t& tolerance, bool print) {
+void MorseComplex::cancelPairsReverseBelow(const value_t& threshold, bool print) {
 	if (print) {
 		cout << "Critical cells:" << endl;
 		printC(threshold);
@@ -529,11 +532,9 @@ void MorseComplex::cancelPairsCoordinatedBelow(const value_t& threshold, const v
 	vector<Cube> cancelable;
 	while (canceled) {
 		canceled = false;
-		for (uint8_t dim = 4; dim-- > 1;) {
-			for (auto it = C[dim].rbegin(); it != C[dim].rend(); ++it) {
-				Cube s = *it;
-
-				if (s.birth >= threshold + tolerance) { continue; }
+		for (uint8_t dim = 1; dim < 4; ++dim) {
+			for (const Cube& s : C[dim]) {
+				if (s.birth >= threshold) { continue; }
 
 				vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
 
@@ -557,7 +558,7 @@ void MorseComplex::cancelPairsCoordinatedBelow(const value_t& threshold, const v
 }
 
 
-void MorseComplex::cancelPairsCoordinatedAbove(const value_t& threshold, const value_t& tolerance, bool print) {
+void MorseComplex::cancelPairsReverseAbove(const value_t& threshold, bool print) {
 	if (print) {
 		cout << "Critical cells:" << endl;
 		printC(threshold);
@@ -574,9 +575,10 @@ void MorseComplex::cancelPairsCoordinatedAbove(const value_t& threshold, const v
 	vector<Cube> cancelable;
 	while (canceled) {
 		canceled = false;
-		for (uint8_t dim = 0; dim < 3; ++dim) {
-			for (const Cube& t : C[dim]) {
-				if (t.birth < threshold - tolerance) { continue; }
+		for (uint8_t dim = 3; dim-- > 0;) {
+			for (auto it = C[dim].rbegin(); it != C[dim].rend(); ++it) {
+				Cube t = *it;
+				if (t.birth < threshold) { continue; }
 
 				vector<pair<Cube, uint8_t>> coboundary = getMorseCoboundary(t);
 

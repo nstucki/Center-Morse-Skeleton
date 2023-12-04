@@ -36,9 +36,9 @@ PYBIND11_MODULE(morse_complex, m) {
         
         .def("cancel_pairs_above", &MorseComplex::cancelPairsAbove, py::arg("threshold")=INFTY, py::arg("print")=false)
 
-        .def("cancel_pairs_coordinated_below", &MorseComplex::cancelPairsCoordinatedBelow, py::arg("threshold")=INFTY, py::arg("tolerance")=0, py::arg("print")=false)
+        .def("cancel_pairs_reverse_below", &MorseComplex::cancelPairsReverseBelow, py::arg("threshold")=INFTY, py::arg("print")=false)
         
-        .def("cancel_pairs_coordinated_above", &MorseComplex::cancelPairsCoordinatedAbove, py::arg("threshold")=INFTY, py::arg("tolerance")=0, py::arg("print")=false)
+        .def("cancel_pairs_reverse_above", &MorseComplex::cancelPairsReverseAbove, py::arg("threshold")=INFTY, py::arg("print")=false)
 
         .def("get_number_of_critical_cells", &MorseComplex::getNumberOfCriticalCells, py::arg("threshold")=INFTY)
 

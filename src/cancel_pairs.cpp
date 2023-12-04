@@ -35,7 +35,6 @@ int main(int argc, char** argv) {
 	fileFormat format;
     string saveName = "result.json";
     value_t threshold = INFTY;
-    value_t tolerance = 0;
     value_t minDistance = INFTY;
     bool print = false;
 	bool save = false;
@@ -45,7 +44,6 @@ int main(int argc, char** argv) {
 		const string arg(argv[i]);
 		if (arg == "--help" || arg == "-h") { print_usage_and_exit(0); }
         else if (arg == "--threshold" || arg == "-t") { threshold = stod(argv[++i]); }
-        else if (arg == "--tolerance" || arg == "-tol") { tolerance = stod(argv[++i]); }
         else if (arg == "--epsilon" || arg == "-e") { minDistance = stod(argv[++i]); }
         else if (arg == "--print" || arg == "-p") { print = true; }
         else if (arg == "--save" || arg == "-s") {
@@ -94,11 +92,11 @@ int main(int argc, char** argv) {
             mc.printC(threshold); cout << endl;
         }
 
-        if (print) { cout << endl << "Canceling pairs < " << threshold << "+" << tolerance << " ... " << endl; }
-        mc.cancelPairsCoordinatedBelow(threshold, tolerance, print);
+        if (print) { cout << endl << "Canceling pairs < " << threshold << " ... " << endl; }
+        mc.cancelPairsReverseBelow(threshold, print);
 
-        if (print) { cout << endl << "Canceling pairs >= " << threshold << "-" << tolerance << " ... " << endl; }
-        mc.cancelPairsCoordinatedAbove(threshold, tolerance, print);
+        if (print) { cout << endl << "Canceling pairs >= " << threshold << " ... " << endl; }
+        mc.cancelPairsReverseAbove(threshold, print);
 
         if (print) { cout << endl << "Checking gradient vectorfield ... "; }
         mc.checkV();
