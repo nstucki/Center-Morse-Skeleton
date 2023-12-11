@@ -20,8 +20,8 @@ void print_usage_and_exit(int exit_code) {
          << "Options:" << endl
          << endl
          << "  --help, -h                      print this screen" << endl
-         << "  --threshold, -t                 cancel pairs up to threshold" << endl
          << "  --epsilon, -e                   minimum distance of pixel values for perturbation" << endl
+         << "  --threshold, -t                 cancel pairs up to threshold" << endl
          << "  --print, -p                     print result to console" << endl
          << "  --save, -s                      save result to file" << endl            
          << endl;
@@ -32,10 +32,14 @@ void print_usage_and_exit(int exit_code) {
 
 int main(int argc, char** argv) {
     string directory = "";
-	fileFormat format;
     string saveName = "result.json";
+	fileFormat format;
+    value_t epsilon = INFTY;
     value_t threshold = INFTY;
-    value_t minDistance = INFTY;
+    string orderDimBelow = ">";
+    string orderValueBelow = ">";
+    string orderDimAbove = "<";
+    string orderValueAbove = "<";
     bool print = false;
 	bool save = false;
     DataFrame df; 
@@ -43,8 +47,12 @@ int main(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
 		const string arg(argv[i]);
 		if (arg == "--help" || arg == "-h") { print_usage_and_exit(0); }
+        else if (arg == "--epsilon" || arg == "-e") { epsilon = stod(argv[++i]); }
         else if (arg == "--threshold" || arg == "-t") { threshold = stod(argv[++i]); }
-        else if (arg == "--epsilon" || arg == "-e") { minDistance = stod(argv[++i]); }
+        else if (arg == "--dim_below" || arg == "-db") { orderDimBelow = argv[++i]; }
+        else if (arg == "--value_below" || arg == "-vb") { orderValueBelow = argv[++i]; }
+        else if (arg == "--dim_above" || arg == "-da") { orderDimAbove = argv[++i]; }
+        else if (arg == "--value_above" || arg == "-va") { orderValueAbove = argv[++i]; }
         else if (arg == "--print" || arg == "-p") { print = true; }
         else if (arg == "--save" || arg == "-s") {
             save = true;
@@ -53,11 +61,23 @@ int main(int argc, char** argv) {
         else { directory = argv[i]; } 
 	}
 
+    if (print) {
+        cout << "Perturbation: " << epsilon << endl;
+        cout << "Threshold: " << threshold << endl;
+        cout << "Canceling order below threshold:" << endl;
+        cout << "dimension: " << orderDimBelow << endl;
+        cout << "value: " << orderValueBelow << endl;
+        cout << "Canceling order above threshold:" << endl;
+        cout << "dimension: " << orderDimAbove << endl;
+        cout << "value: " << orderValueAbove << endl;
+        if (save) { cout << "Saving results to " << saveName << "-options.json" << endl; }
+    }
+
     for (const auto& entry : fs::directory_iterator(directory)) {
 
         string fileName = entry.path().filename().string();
         if (print) { cout << "-----------------------------------------------------------------------------------" << endl; }
-        if (print) { cout << "Processing " << directory << "/" << fileName << ":" << endl; }
+        if (print) { cout << "Processing " << entry.path().string() << ":" << endl; }
 
         if (fileName.empty()) { continue; }
         if (fileName.find(".txt")!= string::npos) { format = PERSEUS; }
@@ -79,7 +99,7 @@ int main(int argc, char** argv) {
         MorseComplex mc(std::move(input), std::move(shape));
 
         if (print) { cout << "Perturbing image ..." << endl; }
-        mc.perturbImage(minDistance);
+        mc.perturbImage(epsilon);
 
         if (print) { cout << "Processing Lower Stars ..." << endl; }
         mc.processLowerStars();
@@ -92,11 +112,7 @@ int main(int argc, char** argv) {
             mc.printC(threshold); cout << endl;
         }
 
-        if (print) { cout << endl << "Canceling pairs < " << threshold << " ... " << endl; }
-        mc.cancelPairsReverseBelow(threshold, print);
-
-        if (print) { cout << endl << "Canceling pairs >= " << threshold << " ... " << endl; }
-        mc.cancelPairsReverseAbove(threshold, print);
+        mc.cancelPairs(threshold, orderDimBelow, orderValueBelow, orderDimAbove, orderValueAbove, print);
 
         if (print) { cout << endl << "Checking gradient vectorfield ... "; }
         mc.checkV();
@@ -113,6 +129,8 @@ int main(int argc, char** argv) {
             cout << "-----------------------------------------------------------------------------------" << endl;
             cout << "Saving results to " << directory + "/" + saveName << endl;
         }
-        df.saveToJson(directory + "/" + saveName, threshold);
+        df.saveToJson(directory + "/" + saveName +
+                        + "-dim_below_" + orderDimBelow + "-value_below_" + orderValueBelow
+                        + "-dim_above_" + orderDimAbove + "-value_above_" + orderValueAbove + ".json", threshold);
     }
 }

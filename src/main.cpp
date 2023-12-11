@@ -88,13 +88,9 @@ int main(int argc, char** argv) {
 
     mc.printC(threshold); cout << endl;
 
-    cout << "canceling < " << threshold << " ..." << endl;
-    mc.cancelPairsBelow(threshold, print);
+    mc.cancelPairs(threshold, "<", ">", "<", "<", print);
 
     mc.checkV();
-
-    cout << "canceling >= " << threshold << " ..." << endl;
-    mc.cancelPairsAbove(threshold, print);
 
     mc.checkV();
 

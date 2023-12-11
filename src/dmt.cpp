@@ -32,13 +32,9 @@ PYBIND11_MODULE(morse_complex, m) {
 
         .def("check_gradient_vectorfield", &MorseComplex::checkV)
         
-        .def("cancel_pairs_below", &MorseComplex::cancelPairsBelow, py::arg("threshold")=INFTY, py::arg("print")=false)
-        
-        .def("cancel_pairs_above", &MorseComplex::cancelPairsAbove, py::arg("threshold")=INFTY, py::arg("print")=false)
-
-        .def("cancel_pairs_reverse_below", &MorseComplex::cancelPairsReverseBelow, py::arg("threshold")=INFTY, py::arg("print")=false)
-        
-        .def("cancel_pairs_reverse_above", &MorseComplex::cancelPairsReverseAbove, py::arg("threshold")=INFTY, py::arg("print")=false)
+        .def("cancel_pairs", &MorseComplex::cancelPairs, py::arg("threshold")=INFTY, py::arg("order_dim_below"), 
+                                                            py::arg("order_value_below"), py::arg("order_dim_above"),
+                                                            py::arg("order_value_above"), py::arg("print")=false)
 
         .def("get_number_of_critical_cells", &MorseComplex::getNumberOfCriticalCells, py::arg("threshold")=INFTY)
 

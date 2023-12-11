@@ -83,13 +83,11 @@ public:
 	void processLowerStars();
 	vector<pair<Cube, uint8_t>> getMorseBoundary(const Cube& s) const;
 	vector<pair<Cube, uint8_t>> getMorseCoboundary(const Cube& s) const;
+	void prepareMorseSkeleton(const value_t& threshold);
 	void extractMorseSkeleton(const value_t& threshold);
 	vector<vector<index_t>> getMorseSkeletonPixels() const;
-	void cancelPairsBelow(const value_t& threshold=INFTY, bool print=true);
-	void cancelPairsAbove(const value_t& threshold=INFTY, bool print=true);
-	void cancelPairsReverseBelow(const value_t& threshold=INFTY, bool print=true);
-	void cancelPairsReverseAbove(const value_t& threshold=INFTY, bool print=true);
-	void cancelClosePairsBelow(const value_t& threshold, bool print=true);
+	void cancelPairs(const value_t& threshold, string orderDimBelow, string orderValueBelow,
+						string orderDimAbove, string orderValueAbove, bool print);
 	void checkV() const;
 	void checkBoundaryAndCoboundary() const;
 	value_t getPerturbation() const;
@@ -126,6 +124,15 @@ private:
 	void traverseCoflow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
 	void getConnections(const Cube&s, const Cube& t, vector<tuple<Cube, Cube, Cube>>& connections) const;
 	void cancelPair(const Cube&s, const Cube& t);
+	void cancelPairsDimDecreasingValueDecreasingBelow(const value_t& threshold=INFTY, bool print=true);
+	void cancelPairsDimDecreasingValueIncreasingBelow(const value_t& threshold=INFTY, bool print=true);
+	void cancelPairsDimIncreasingValueDecreasingBelow(const value_t& threshold=INFTY, bool print=true);
+	void cancelPairsDimIncreasingValueIncreasingBelow(const value_t& threshold=INFTY, bool print=true);
+	void cancelPairsDimDecreasingValueDecreasingAbove(const value_t& threshold=INFTY, bool print=true);
+	void cancelPairsDimDecreasingValueIncreasingAbove(const value_t& threshold=INFTY, bool print=true);
+	void cancelPairsDimIncreasingValueDecreasingAbove(const value_t& threshold=INFTY, bool print=true);
+	void cancelPairsDimIncreasingValueIncreasingAbove(const value_t& threshold=INFTY, bool print=true);
+	void cancelClosePairsBelow(const value_t& threshold, bool print=true);
 	value_t*** grid;
 	bool perturbed;
 	bool processedLowerStars;
