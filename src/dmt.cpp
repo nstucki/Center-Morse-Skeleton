@@ -27,8 +27,13 @@ PYBIND11_MODULE(morse_complex, m) {
         .def("get_perturbation", &MorseComplex::getPerturbation)
 
         .def("perturb_image", &MorseComplex::perturbImage, py::arg("epsilon")=INFTY)
+
+        .def("perturb_image_minimal", &MorseComplex::perturbImageMinimal)
         
         .def("process_lower_stars", &MorseComplex::processLowerStars)
+
+        .def("process_lower_stars_parallel", &MorseComplex::processLowerStarsParallel, py::arg("x_partition")=1, py::arg("y_partition")=1,
+                                                                                        py::arg("z_partition")=1 )
 
         .def("check_gradient_vectorfield", &MorseComplex::checkV)
         
@@ -46,9 +51,17 @@ PYBIND11_MODULE(morse_complex, m) {
 
         .def("get_morse_coboundary", &MorseComplex::getMorseCoboundary, py::arg("cube"))
 
-        .def("extract_morse_skeleton", &MorseComplex::extractMorseSkeleton, py::arg("threshold"))
+        .def("prepare_morse_skeleton_below", &MorseComplex::prepareMorseSkeletonBelow, py::arg("threshold")=INFTY, py::arg("print")=false)
 
-        .def("get_morse_skeleton", &MorseComplex::getMorseSkeletonPixels);
+        .def("extract_morse_skeleton_below", &MorseComplex::extractMorseSkeletonBelow, py::arg("threshold")=INFTY)
+
+        .def("get_morse_skeleton_below", &MorseComplex::getMorseSkeletonPixelsBelow)
+
+        .def("prepare_morse_skeleton_above", &MorseComplex::prepareMorseSkeletonAbove, py::arg("threshold")=INFTY, py::arg("print")=false)
+
+        .def("extract_morse_skeleton_above", &MorseComplex::extractMorseSkeletonAbove, py::arg("threshold")=INFTY)
+
+        .def("get_morse_skeleton_above", &MorseComplex::getMorseSkeletonPixelsAbove);
 
         
 

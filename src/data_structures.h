@@ -5,6 +5,7 @@
 #include <vector>
 #include <set>
 #include <unordered_map>
+#include <mutex>
 
 using namespace std;
 
@@ -73,6 +74,7 @@ struct ReverseOrder {
 class MorseComplex {
 public:
 	MorseComplex(const vector<value_t>&& image, const vector<index_t>&& shape);
+	MorseComplex(const vector<value_t>& image, const vector<index_t>& shape);
 	MorseComplex(MorseComplex&& other);
 	~MorseComplex();
 	value_t getValue(const index_t& x, const index_t& y, const index_t& z) const;
@@ -80,20 +82,23 @@ public:
 						const uint8_t& type, const uint8_t& dim) const;
 	
 	void perturbImage(const value_t& epsilon=INFTY);
+	void perturbImageMinimal();
 	void processLowerStars();
-	vector<pair<Cube, uint8_t>> getMorseBoundary(const Cube& s) const;
-	vector<pair<Cube, uint8_t>> getMorseCoboundary(const Cube& s) const;
-	void prepareMorseSkeleton(const value_t& threshold);
-	void extractMorseSkeleton(const value_t& threshold);
-	vector<vector<index_t>> getMorseSkeletonPixels() const;
+	void processLowerStarsParallel(const index_t& xPartition = 1, const index_t& yPartition = 1, const index_t& zPartition = 1);
 	void cancelPairs(const value_t& threshold, string orderDimBelow, string orderValueBelow,
 						string orderDimAbove, string orderValueAbove, bool print);
-	void checkV() const;
-	void checkBoundaryAndCoboundary() const;
+	void prepareMorseSkeletonBelow(const value_t& threshold, bool print);
+	void prepareMorseSkeletonAbove(const value_t& threshold, bool print);
+	void extractMorseSkeletonBelow(const value_t& threshold);
+	void extractMorseSkeletonAbove(const value_t& threshold);
+	vector<vector<index_t>> getMorseSkeletonVoxelsBelow() const;
+	vector<vector<index_t>> getMorseSkeletonVoxelsAbove() const;
 	value_t getPerturbation() const;
 	vector<vector<Cube>> getCriticalCells() const;
 	vector<vector<vector<vector<index_t>>>> getCriticalVoxels() const;
 	vector<vector<size_t>> getNumberOfCriticalCells(const value_t& threshold=INFTY) const;
+	void checkV() const;
+	void checkBoundaryAndCoboundary() const;
 	void printC(const value_t& threshold=INFTY) const;
 	void printV() const;
 	void printMorseBoundary(const Cube& c) const;
@@ -117,9 +122,16 @@ private:
 	vector<Cube> getFaces(const Cube& cube);
 	value_t getMinimumDistance();
 	vector<Cube> getLowerStar(const index_t& x, const index_t& y, const index_t& z) const;
-	size_t numUnpairedFaces(const Cube& cube, const vector<Cube>& L);
-	Cube unpairedFace(const Cube& cube, const vector<Cube>& L);
-	void extractMorseComplex();
+	size_t numUnpairedFaces(const Cube& cube, const vector<Cube>& L) const;
+	size_t numUnpairedFacesParallel(const Cube& cube, const vector<Cube>& L) const;
+	Cube getUnpairedFace(const Cube& cube, const vector<Cube>& L) const;
+	Cube getUnpairedFaceParallel(const Cube& cube, const vector<Cube>& L) const;
+	void insertToC(const Cube& cube);
+	void insertToV(const Cube& cube0, const Cube& cube1);
+	void processLowerStarsBetween(const index_t& x_min, const index_t& x_max, const index_t& y_min, const index_t& y_max,
+									const index_t& z_min, const index_t& z_max);
+	vector<pair<Cube, uint8_t>> getMorseBoundary(const Cube& s) const;
+	vector<pair<Cube, uint8_t>> getMorseCoboundary(const Cube& s) const;
 	void traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
 	void traverseCoflow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
 	void getConnections(const Cube&s, const Cube& t, vector<tuple<Cube, Cube, Cube>>& connections) const;
@@ -133,14 +145,20 @@ private:
 	void cancelPairsDimIncreasingValueDecreasingAbove(const value_t& threshold=INFTY, bool print=true);
 	void cancelPairsDimIncreasingValueIncreasingAbove(const value_t& threshold=INFTY, bool print=true);
 	void cancelClosePairsBelow(const value_t& threshold, bool print=true);
+	void extractMorseComplex();
+	void processLowerStarsBackup();
 	value_t*** grid;
 	bool perturbed;
 	bool processedLowerStars;
 	value_t perturbation;
 	vector<vector<Cube>> C;
+	mutable std::mutex mutexC;
 	unordered_map<Cube, Cube, Cube::Hash> V;
 	unordered_map<Cube, Cube, Cube::Hash> coV;
+	mutable std::mutex mutexV;
 	unordered_map<Cube, vector<Cube>, Cube::Hash> faces;
-	set<Cube> morseSkeleton;
-	set<vector<index_t>> morseSkeletonPixels;
+	set<Cube> morseSkeletonBelow;
+	set<Cube> morseSkeletonAbove;
+	set<vector<index_t>> morseSkeletonVoxelsBelow;
+	set<vector<index_t>> morseSkeletonVoxelsAbove;
 };

@@ -22,6 +22,10 @@ void print_usage_and_exit(int exit_code) {
          << "  --help, -h                      print this screen" << endl
          << "  --epsilon, -e                   minimum distance of pixel values for perturbation" << endl
          << "  --threshold, -t                 cancel pairs up to threshold" << endl
+         << "  --dim_below, -db                order of dimensions for canceling below threshold" << endl
+         << "  --value_below, -vb              order of values for canceling below threshold" << endl
+         << "  --dim_above, -da                order of dimensions for canceling above threshold" << endl
+         << "  --value_above, -va              order of values for canceling above threshold" << endl
          << "  --print, -p                     print result to console" << endl
          << "  --save, -s                      save result to file" << endl            
          << endl;

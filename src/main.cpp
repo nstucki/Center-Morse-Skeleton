@@ -57,42 +57,47 @@ int main(int argc, char** argv) {
         else { filename = argv[i]; } 
 	}
 
-    if (filename.empty()) { print_usage_and_exit(-1); } 
-    if (filename.find(".txt")!= string::npos) { format = PERSEUS; } 
-    else if (filename.find(".npy")!= string::npos) { format = NUMPY; } 
-    else if (filename.find(".complex")!= string::npos) { format = DIPHA; } 
-    else {
-		cerr << "unknown input file format! (the filename extension should be .txt/.npy/.complex): " << filename << endl;
-		exit(-1);
-	}
-    ifstream fileStream(filename);
-	if (!filename.empty() && fileStream.fail()) {
-		cerr << "couldn't open file " << filename << endl;
-		exit(-1);
-	}
+    // if (filename.empty()) { print_usage_and_exit(-1); } 
+    // if (filename.find(".txt")!= string::npos) { format = PERSEUS; } 
+    // else if (filename.find(".npy")!= string::npos) { format = NUMPY; } 
+    // else if (filename.find(".complex")!= string::npos) { format = DIPHA; } 
+    // else {
+	// 	cerr << "unknown input file format! (the filename extension should be .txt/.npy/.complex): " << filename << endl;
+	// 	exit(-1);
+	// }
+    // ifstream fileStream(filename);
+	// if (!filename.empty() && fileStream.fail()) {
+	// 	cerr << "couldn't open file " << filename << endl;
+	// 	exit(-1);
+	// }
 
-    vector<value_t> input;
-    vector<index_t> shape;
-    readImage(filename, format, input, shape);
+    // vector<value_t> input;
+    // vector<index_t> shape;
+    // readImage(filename, format, input, shape);
 
-    MorseComplex mc(std::move(input), std::move(shape));
+    // MorseComplex mc(std::move(input), std::move(shape));
 
-    // if (plot) { cout << "Image:" << endl; mc.plotImage(); cout << endl; }
+    // mc.perturbImage();
 
-    mc.perturbImage(epsilon);
+    // auto start = high_resolution_clock::now();
 
-    // if (plot) { cout << "Perturbed image:" << endl; mc.plotImage(); cout << endl; }
+    // //mc.processLowerStars();
+    // //mc.processLowerStars2();
+    // mc.processLowerStarsParallel(8, 9, 10);
 
-    mc.processLowerStars();
-    mc.checkV();
+    // auto stop = high_resolution_clock::now();
+    // auto duration = duration_cast<milliseconds>(stop - start);
+    // cout << duration.count() << " ms" << endl;
 
-    mc.printC(threshold); cout << endl;
+    // mc.checkV();
 
-    mc.cancelPairs(threshold, "<", ">", "<", "<", print);
+    // // cout << mc.getPerturbation() << endl;
 
-    mc.checkV();
+    // mc.printC(threshold); cout << endl;
 
-    mc.checkV();
+    // mc.cancelPairs(threshold, "<", ">", "<", "<", print);
+
+    // mc.checkV();
 
     // if (print) {
     //     cout << endl << "Morse boundary:" << endl;
@@ -106,40 +111,54 @@ int main(int argc, char** argv) {
     //     }
     // }
 
-    //directory = filename;
+    directory = filename;
+    for (const auto& entry : fs::directory_iterator(directory)) {
+        string fileName = entry.path().filename().string();
+        cout << "-----------------------------------------------------------------------" << endl;
+        cout << "processing " << fileName << endl;
 
-    // for (const auto& entry : fs::directory_iterator(directory)) {
-    //     string fileName = entry.path().filename().string();
-    //     cout << "-----------------------------------------------------------------------" << endl;
-    //     cout << "processing " << fileName << endl;
+        if (fileName.empty()) { continue; }
+        if (fileName.find(".txt")!= string::npos) { format = PERSEUS; }
+        else if (fileName.find(".npy")!= string::npos) { format = NUMPY; } 
+        else if (fileName.find(".complex")!= string::npos) { format = DIPHA; }
+        else { cerr << "File format is not supported!" << endl; continue; }
 
-    //     if (fileName.empty()) { continue; }
-    //     if (fileName.find(".txt")!= string::npos) { format = PERSEUS; }
-    //     else if (fileName.find(".npy")!= string::npos) { format = NUMPY; } 
-    //     else if (fileName.find(".complex")!= string::npos) { format = DIPHA; }
-    //     else { cerr << "File format is not supported!" << endl; continue; }
+        string filePath = entry.path().string();
+        ifstream fileStream(filePath);
+        if (!fileName.empty() && fileStream.fail()) {
+	        cerr << "Couldn't open file!" << endl;
+	        exit(-1);
+	    }
 
-    //     string filePath = entry.path().string();
-    //     ifstream fileStream(filePath);
-    //     if (!fileName.empty() && fileStream.fail()) {
-	//         cerr << "Couldn't open file!" << endl;
-	//         exit(-1);
-	//     }
+        vector<value_t> input;
+        vector<index_t> shape;
+        readImage(filePath, format, input, shape);
 
-    //     vector<value_t> input;
-    //     vector<index_t> shape;
-    //     readImage(filePath, format, input, shape);
+        // MorseComplex mc(std::move(input), std::move(shape));
+        MorseComplex mc(input, shape);
+        mc.perturbImage(epsilon);
+        mc.processLowerStars();
+        cout << "Checking gradient vectorfield ... ";
+        mc.checkV();
 
-    //     MorseComplex mc(std::move(input), std::move(shape));
+        MorseComplex mc2(input, shape);
+        mc2.perturbImage(epsilon);
+        mc2.processLowerStarsParallel(8, 9, 10);
+        cout << "Checking gradient vectorfield ... ";
+        mc2.checkV();
 
-    //     mc.perturbImage(epsilon);
+        vector<vector<size_t>> num = mc.getNumberOfCriticalCells(1);
+        vector<vector<size_t>> num2 = mc2.getNumberOfCriticalCells(1);
 
-    //     mc.processLowerStars();
+        for (uint8_t k = 0; k < 3; ++k) {
+            for (uint8_t i = 0; i < 4; ++i) {
+                cout << num[k][i] << " <-> " << num2[k][i] << endl;
+            }
+        }
+        if (num != num2) { cerr << "something went wrong!" << endl;}
+        
 
-    //     cout << "Checking gradient vectorfield ... ";
-    //     mc.checkV();
-
-    //     cout << "Checking boundaries and coboundaries ... ";
-    //     mc.checkBoundaryAndCoboundary();
-    // }
+        // cout << "Checking boundaries and coboundaries ... ";
+        // mc.checkBoundaryAndCoboundary();
+    }
 }
