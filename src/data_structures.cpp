@@ -444,7 +444,7 @@ void MorseComplex::cancelPairs(const value_t& threshold, string orderDimBelow, s
 }
 
 
-void MorseComplex::prepareMorseSkeletonBelow(const value_t& threshold, bool print) {
+void MorseComplex::prepareMorseSkeletonBelow(const value_t& threshold, const value_t& tolerance, bool print) {
 	if (print) {
 		cout << "Critical cells:" << endl;
 		printC(threshold);
@@ -483,6 +483,30 @@ void MorseComplex::prepareMorseSkeletonBelow(const value_t& threshold, bool prin
 				break;
 			}
 			if (canceled) { break; }
+		}
+
+		if (tolerance != 0) {
+			for (auto it = C[0].rbegin(); it != C[0].rend(); ++it) {
+				Cube t = *it;
+
+				if (t.birth >= threshold || t.birth < threshold - tolerance) { continue; }
+
+				vector<pair<Cube, uint8_t>> coboundary = getMorseCoboundary(t);
+
+				cancelable.clear();
+				for (const pair<Cube, uint8_t> c : coboundary) {
+					if (get<1>(c) == 1) { cancelable.push_back(get<0>(c)); }
+				}
+				if (cancelable.size() == 0) { continue; }
+				sort(cancelable.begin(), cancelable.end());
+				if (cancelable.front().birth >= threshold) { continue; }
+
+				cancelPair(cancelable.front(), t);
+				canceled = true;
+
+				if (print) { printC(threshold); }
+				break;
+			}
 		}
 	}
 	if (print) { cout << endl; }
@@ -583,6 +607,60 @@ void MorseComplex::extractMorseSkeletonAbove(const value_t& threshold) {
 		}
 
 	}
+}
+
+
+vector<pair<Cube, uint8_t>> MorseComplex::getMorseBoundary(const Cube& s) const {
+	unordered_map<Cube, uint8_t, Cube::Hash> count;
+	count.emplace(s, 1);
+	set<Cube> boundary;
+
+	vector<tuple<Cube, Cube,Cube>> flow;
+	traverseFlow(s, flow);
+
+	uint8_t n;
+	for (const tuple<Cube, Cube, Cube>& f : flow) {
+		auto it = count.find(get<2>(f));
+		if (it != count.end()) { n = count[get<0>(f)] + it->second; }
+		else { n = count[get<0>(f)]; }
+		if (n > 3) { count.insert_or_assign(get<2>(f), n%2 + 2); }
+		else { count.insert_or_assign(get<2>(f), n); }
+		if (get<1>(f) == get<2>(f)) { boundary.insert(get<2>(f)); }
+	}
+
+	vector<pair<Cube, uint8_t>> result;
+	for (const Cube& b : boundary) {
+		result.push_back(pair(b, count[b]));
+	}
+
+	return result;
+}
+
+
+vector<pair<Cube, uint8_t>> MorseComplex::getMorseCoboundary(const Cube& s) const {
+	unordered_map<Cube, uint8_t, Cube::Hash> count;
+	count.emplace(s, 1);
+	set<Cube> coboundary;
+
+	vector<tuple<Cube, Cube,Cube>> flow;
+	traverseCoflow(s, flow);
+
+	uint8_t n;
+	for (const tuple<Cube, Cube, Cube>& f : flow) {
+		auto it = count.find(get<2>(f));
+		if (it != count.end()) { n = count[get<0>(f)] + it->second; }
+		else { n = count[get<0>(f)]; }
+		if (n > 3) { count.insert_or_assign(get<2>(f), n%2 + 2); }
+		else { count.insert_or_assign(get<2>(f), n); }
+		if (get<1>(f) == get<2>(f)) { coboundary.insert(get<2>(f)); }
+	}
+
+	vector<pair<Cube, uint8_t>> result;
+	for (const Cube& c : coboundary) {
+		result.push_back(pair(c, count[c]));
+	}
+
+	return result;
 }
 
 
@@ -1201,60 +1279,6 @@ void MorseComplex::processLowerStarsBetween(const index_t& xMin, const index_t& 
 			}
 		}
 	}
-}
-
-
-vector<pair<Cube, uint8_t>> MorseComplex::getMorseBoundary(const Cube& s) const {
-	unordered_map<Cube, uint8_t, Cube::Hash> count;
-	count.emplace(s, 1);
-	set<Cube> boundary;
-
-	vector<tuple<Cube, Cube,Cube>> flow;
-	traverseFlow(s, flow);
-
-	uint8_t n;
-	for (const tuple<Cube, Cube, Cube>& f : flow) {
-		auto it = count.find(get<2>(f));
-		if (it != count.end()) { n = count[get<0>(f)] + it->second; }
-		else { n = count[get<0>(f)]; }
-		if (n > 3) { count.insert_or_assign(get<2>(f), n%2 + 2); }
-		else { count.insert_or_assign(get<2>(f), n); }
-		if (get<1>(f) == get<2>(f)) { boundary.insert(get<2>(f)); }
-	}
-
-	vector<pair<Cube, uint8_t>> result;
-	for (const Cube& b : boundary) {
-		result.push_back(pair(b, count[b]));
-	}
-
-	return result;
-}
-
-
-vector<pair<Cube, uint8_t>> MorseComplex::getMorseCoboundary(const Cube& s) const {
-	unordered_map<Cube, uint8_t, Cube::Hash> count;
-	count.emplace(s, 1);
-	set<Cube> coboundary;
-
-	vector<tuple<Cube, Cube,Cube>> flow;
-	traverseCoflow(s, flow);
-
-	uint8_t n;
-	for (const tuple<Cube, Cube, Cube>& f : flow) {
-		auto it = count.find(get<2>(f));
-		if (it != count.end()) { n = count[get<0>(f)] + it->second; }
-		else { n = count[get<0>(f)]; }
-		if (n > 3) { count.insert_or_assign(get<2>(f), n%2 + 2); }
-		else { count.insert_or_assign(get<2>(f), n); }
-		if (get<1>(f) == get<2>(f)) { coboundary.insert(get<2>(f)); }
-	}
-
-	vector<pair<Cube, uint8_t>> result;
-	for (const Cube& c : coboundary) {
-		result.push_back(pair(c, count[c]));
-	}
-
-	return result;
 }
 
 

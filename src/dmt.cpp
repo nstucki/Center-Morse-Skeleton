@@ -37,9 +37,9 @@ PYBIND11_MODULE(morse_complex, m) {
 
         .def("check_gradient_vectorfield", &MorseComplex::checkV)
         
-        .def("cancel_pairs", &MorseComplex::cancelPairs, py::arg("threshold")=INFTY, py::arg("order_dim_below"), 
-                                                            py::arg("order_value_below"), py::arg("order_dim_above"),
-                                                            py::arg("order_value_above"), py::arg("print")=false)
+        .def("cancel_pairs", &MorseComplex::cancelPairs, py::arg("threshold")=INFTY, py::arg("order_dim_below")=">", 
+                                                            py::arg("order_value_below")=">", py::arg("order_dim_above")="<",
+                                                            py::arg("order_value_above")="<", py::arg("print")=true)
 
         .def("get_number_of_critical_cells", &MorseComplex::getNumberOfCriticalCells, py::arg("threshold")=INFTY)
 
@@ -51,17 +51,18 @@ PYBIND11_MODULE(morse_complex, m) {
 
         .def("get_morse_coboundary", &MorseComplex::getMorseCoboundary, py::arg("cube"))
 
-        .def("prepare_morse_skeleton_below", &MorseComplex::prepareMorseSkeletonBelow, py::arg("threshold")=INFTY, py::arg("print")=false)
+        .def("prepare_morse_skeleton_below", &MorseComplex::prepareMorseSkeletonBelow, py::arg("threshold")=INFTY, py::arg("tolerance")=0,
+                                                                                        py::arg("print")=true)
+
+        .def("prepare_morse_skeleton_above", &MorseComplex::prepareMorseSkeletonAbove, py::arg("threshold")=INFTY, py::arg("print")=true)
 
         .def("extract_morse_skeleton_below", &MorseComplex::extractMorseSkeletonBelow, py::arg("threshold")=INFTY)
 
-        .def("get_morse_skeleton_below", &MorseComplex::getMorseSkeletonPixelsBelow)
-
-        .def("prepare_morse_skeleton_above", &MorseComplex::prepareMorseSkeletonAbove, py::arg("threshold")=INFTY, py::arg("print")=false)
-
         .def("extract_morse_skeleton_above", &MorseComplex::extractMorseSkeletonAbove, py::arg("threshold")=INFTY)
 
-        .def("get_morse_skeleton_above", &MorseComplex::getMorseSkeletonPixelsAbove);
+        .def("get_morse_skeleton_below", &MorseComplex::getMorseSkeletonVoxelsBelow)
+
+        .def("get_morse_skeleton_above", &MorseComplex::getMorseSkeletonVoxelsAbove);
 
         
 

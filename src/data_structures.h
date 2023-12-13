@@ -85,12 +85,14 @@ public:
 	void perturbImageMinimal();
 	void processLowerStars();
 	void processLowerStarsParallel(const index_t& xPartition = 1, const index_t& yPartition = 1, const index_t& zPartition = 1);
-	void cancelPairs(const value_t& threshold, string orderDimBelow, string orderValueBelow,
-						string orderDimAbove, string orderValueAbove, bool print);
-	void prepareMorseSkeletonBelow(const value_t& threshold, bool print);
-	void prepareMorseSkeletonAbove(const value_t& threshold, bool print);
-	void extractMorseSkeletonBelow(const value_t& threshold);
-	void extractMorseSkeletonAbove(const value_t& threshold);
+	void cancelPairs(const value_t& threshold, string orderDimBelow=">", string orderValueBelow=">",
+						string orderDimAbove="<", string orderValueAbove="<", bool print=true);
+	void prepareMorseSkeletonBelow(const value_t& threshold=INFTY, const value_t& tolerance=0, bool print=true);
+	void prepareMorseSkeletonAbove(const value_t& threshold=INFTY, bool print=true);
+	void extractMorseSkeletonBelow(const value_t& threshold=INFTY);
+	void extractMorseSkeletonAbove(const value_t& threshold=INFTY);
+	vector<pair<Cube, uint8_t>> getMorseBoundary(const Cube& s) const;
+	vector<pair<Cube, uint8_t>> getMorseCoboundary(const Cube& s) const;
 	vector<vector<index_t>> getMorseSkeletonVoxelsBelow() const;
 	vector<vector<index_t>> getMorseSkeletonVoxelsAbove() const;
 	value_t getPerturbation() const;
@@ -130,8 +132,6 @@ private:
 	void insertToV(const Cube& cube0, const Cube& cube1);
 	void processLowerStarsBetween(const index_t& x_min, const index_t& x_max, const index_t& y_min, const index_t& y_max,
 									const index_t& z_min, const index_t& z_max);
-	vector<pair<Cube, uint8_t>> getMorseBoundary(const Cube& s) const;
-	vector<pair<Cube, uint8_t>> getMorseCoboundary(const Cube& s) const;
 	void traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
 	void traverseCoflow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
 	void getConnections(const Cube&s, const Cube& t, vector<tuple<Cube, Cube, Cube>>& connections) const;
