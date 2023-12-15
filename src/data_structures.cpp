@@ -513,7 +513,7 @@ void MorseComplex::prepareMorseSkeletonBelow(const value_t& threshold, const val
 }
 
 
-void MorseComplex::prepareMorseSkeletonAbove(const value_t& threshold, bool print) {
+void MorseComplex::prepareMorseSkeletonAbove(const value_t& threshold, const value_t& tolerance, bool print) {
 	if (print) {
 		cout << "Critical cells:" << endl;
 		printC(threshold);
@@ -550,6 +550,28 @@ void MorseComplex::prepareMorseSkeletonAbove(const value_t& threshold, bool prin
 				break;
 			}
 			if (canceled) { break; }
+		}
+
+		if (tolerance != 0) {
+			for (const Cube& s : C[3]) {
+				if (s.birth < threshold || s.birth >= threshold + tolerance) { continue; }
+
+				vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
+
+				cancelable.clear();
+				for (const pair<Cube, uint8_t> b : boundary) {
+					if (get<1>(b) == 1) { cancelable.push_back(get<0>(b)); }
+				}
+				if (cancelable.size() == 0) { continue; }
+				sort(cancelable.begin(), cancelable.end());
+				if (cancelable.back().birth < threshold) { continue; }
+
+				cancelPair(s, cancelable.back());
+				canceled = true;
+
+				if (print) { printC(threshold); }
+				break;
+			}
 		}
 	}
 	if (print) { cout << endl; }

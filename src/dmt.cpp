@@ -54,7 +54,8 @@ PYBIND11_MODULE(morse_complex, m) {
         .def("prepare_morse_skeleton_below", &MorseComplex::prepareMorseSkeletonBelow, py::arg("threshold")=INFTY, py::arg("tolerance")=0,
                                                                                         py::arg("print")=true)
 
-        .def("prepare_morse_skeleton_above", &MorseComplex::prepareMorseSkeletonAbove, py::arg("threshold")=INFTY, py::arg("print")=true)
+        .def("prepare_morse_skeleton_above", &MorseComplex::prepareMorseSkeletonAbove, py::arg("threshold")=INFTY, py::arg("tolerance")=0, 
+                                                                                        py::arg("print")=true)
 
         .def("extract_morse_skeleton_below", &MorseComplex::extractMorseSkeletonBelow, py::arg("threshold")=INFTY)
 

@@ -88,7 +88,7 @@ public:
 	void cancelPairs(const value_t& threshold, string orderDimBelow=">", string orderValueBelow=">",
 						string orderDimAbove="<", string orderValueAbove="<", bool print=true);
 	void prepareMorseSkeletonBelow(const value_t& threshold=INFTY, const value_t& tolerance=0, bool print=true);
-	void prepareMorseSkeletonAbove(const value_t& threshold=INFTY, bool print=true);
+	void prepareMorseSkeletonAbove(const value_t& threshold=INFTY, const value_t& tolerance=0, bool print=true);
 	void extractMorseSkeletonBelow(const value_t& threshold=INFTY);
 	void extractMorseSkeletonAbove(const value_t& threshold=INFTY);
 	vector<pair<Cube, uint8_t>> getMorseBoundary(const Cube& s) const;
