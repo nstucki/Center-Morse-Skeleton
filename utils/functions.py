@@ -63,14 +63,14 @@ def plot_morse_skeleton(MC, image=np.zeros((0)), threshold=0, plot_below=True, p
 
     fig = go.Figure()
     if image.shape != (0):
-        fig.add_trace(go.Scatter3d(x=x_0, y=y_0, z=z_0, opacity=0.2, mode='markers', marker=dict(size=2, color='blue'), name='voxels below'))
+        fig.add_trace(go.Scatter3d(x=x_0, y=y_0, z=z_0, opacity=0.25, mode='markers', marker=dict(size=2, color='blue'), name='voxels below'))
     if plot_below:
         fig.add_trace(go.Scatter3d(x=x_2, y=y_2, z=z_2, mode='markers', marker=dict(size=2, color='orange'), name='skeleton below'))
         if plot_critical:
             fig.add_trace(go.Scatter3d(x=x_3, y=y_3, z=z_3, mode='markers', marker=dict(size=2, color='red'), name='critical below'))
     if plot_above:
-        fig.add_trace(go.Scatter3d(x=x_4, y=y_4, z=z_4, mode='markers', marker=dict(size=2, color='green'), name='skeleton above'))
+        fig.add_trace(go.Scatter3d(x=x_4, y=y_4, z=z_4, opacity=0.5, mode='markers', marker=dict(size=2, color='green'), name='skeleton above'))
         if plot_critical:
-            fig.add_trace(go.Scatter3d(x=x_5, y=y_5, z=z_5, mode='markers', marker=dict(size=2, color='yellow'), name='critical above'))
+            fig.add_trace(go.Scatter3d(x=x_5, y=y_5, z=z_5, opacity=0.5, mode='markers', marker=dict(size=2, color='yellow'), name='critical above'))
     fig.update_layout(scene=dict(aspectratio=dict(x=1, y=1, z=1), aspectmode='manual'))
     fig.show()

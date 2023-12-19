@@ -20,10 +20,6 @@ PYBIND11_MODULE(morse_complex, m) {
                 return MorseComplex(std::move(inputVector), std::move(shape));
             }))
 
-        .def_readonly("shape", &MorseComplex::shape)
-
-        .def("get_value", &MorseComplex::getValue)
-
         .def("get_perturbation", &MorseComplex::getPerturbation)
 
         .def("perturb_image", &MorseComplex::perturbImage, py::arg("epsilon")=INFTY)
@@ -32,8 +28,10 @@ PYBIND11_MODULE(morse_complex, m) {
         
         .def("process_lower_stars", &MorseComplex::processLowerStars)
 
-        .def("process_lower_stars_parallel", &MorseComplex::processLowerStarsParallel, py::arg("x_partition")=1, py::arg("y_partition")=1,
-                                                                                        py::arg("z_partition")=1 )
+        .def("process_lower_stars_without_perturbation", &MorseComplex::processLowerStarsWithoutPerturbation)
+
+        .def("process_lower_stars_parallel", &MorseComplex::processLowerStarsParallel, py::arg("x_patch")=1, py::arg("y_patch")=1,
+                                                                                        py::arg("z_patch")=1 )
 
         .def("check_gradient_vectorfield", &MorseComplex::checkV)
         
@@ -44,8 +42,6 @@ PYBIND11_MODULE(morse_complex, m) {
         .def("get_number_of_critical_cells", &MorseComplex::getNumberOfCriticalCells, py::arg("threshold")=INFTY)
 
         .def("get_critical_cells", &MorseComplex::getCriticalCells)
-
-         .def("get_critical_voxels", &MorseComplex::getCriticalVoxels)
 
         .def("get_morse_boundary", &MorseComplex::getMorseBoundary, py::arg("cube"))
 

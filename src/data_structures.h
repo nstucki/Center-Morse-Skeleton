@@ -6,6 +6,7 @@
 #include <set>
 #include <unordered_map>
 #include <mutex>
+#include <iostream>
 
 using namespace std;
 
@@ -19,9 +20,9 @@ class Cube {
 public:
 	Cube();
 	Cube(const value_t& birth, const index_t& x, const index_t& y, const index_t& z, 
-			const uint8_t& type, const uint8_t& dim);
+			const int8_t& type, const int8_t& dim);
 	Cube(const MorseComplex& mc, const index_t& x, const index_t& y, const index_t& z, 
-			const uint8_t& type, const uint8_t& dim);
+			const int8_t& type, const int8_t& dim);
 	Cube(const Cube& other);
 	Cube& operator=(const Cube& rhs);
 	bool operator==(const Cube& rhs) const;
@@ -34,16 +35,16 @@ public:
 	index_t x;
 	index_t y;
 	index_t z;
-	uint8_t type;
-	uint8_t dim;
+	int8_t type;
+	int8_t dim;
 	struct Hash {
 		size_t operator()(const Cube& cube) const {
 			size_t h1 = hash<value_t>{}(cube.birth);
 			size_t h2 = hash<index_t>{}(cube.x);
 			size_t h3 = hash<index_t>{}(cube.y);
 			size_t h4 = hash<index_t>{}(cube.z);
-			size_t h5 = hash<uint8_t>{}(cube.type);
-			size_t h6 = hash<uint8_t>{}(cube.dim);
+			size_t h5 = hash<int8_t>{}(cube.type);
+			size_t h6 = hash<int8_t>{}(cube.dim);
 
 			const size_t seed = 0;
 			const size_t prime1 = 17;
@@ -71,6 +72,59 @@ struct ReverseOrder {
 
 
 
+template<typename T>
+class CubeMap {
+public:
+	CubeMap(const vector<index_t>& _shape)  : shape(_shape), mYZ(shape[1]*shape[2]), nYZ(mYZ*3), nZ(shape[2]*3), map(4) {
+		size_t m = shape[0]*shape[1]*shape[2];
+		map[0] = vector<T>(m);
+		map[1] = vector<T>(m*3);
+		map[2] = vector<T>(m*3);
+		map[3] = vector<T>(m);
+	};
+
+	CubeMap(const CubeMap& other) : shape(other.shape), mYZ(other.mYZ), nYZ(other.nYZ), nZ(other.nZ), map(other.map) {};
+
+	void emplace(const Cube& key, const T& value) {
+		map[key.dim][hashCube(key)] = value;
+	};
+
+	T getValue(const Cube& key) const {
+		return map[key.dim][hashCube(key)];
+	};
+	void erase(const Cube& key) {
+		map[key.dim][hashCube(key)] = T();
+	};
+	
+
+private:
+	size_t hashCube(const Cube& cube) const {
+		switch(cube.dim) {
+			case 0:
+			return cube.x*mYZ + cube.y*shape[2] + cube.z;
+
+			case 1:
+			return cube.x*nYZ + cube.y*nZ + cube.z*3 + cube.type;
+
+			case 2:
+			return cube.x*nYZ + cube.y*nZ + cube.z*3 + cube.type;
+
+			case 3:
+			return cube.x*mYZ + cube.y*shape[2] + cube.z;
+		}
+		cerr << "Did not catch cube!" << endl;
+
+		return 0;
+	};
+	vector<index_t> shape;
+	size_t mYZ;
+	size_t nYZ;
+	size_t nZ;
+	vector<vector<T>> map;
+};
+
+
+
 class MorseComplex {
 public:
 	MorseComplex(const vector<value_t>&& image, const vector<index_t>&& shape);
@@ -80,11 +134,13 @@ public:
 	value_t getValue(const index_t& x, const index_t& y, const index_t& z) const;
 	value_t getBirth(const index_t& x, const index_t& y, const index_t& z, 
 						const uint8_t& type, const uint8_t& dim) const;
-	
 	void perturbImage(const value_t& epsilon=INFTY);
 	void perturbImageMinimal();
 	void processLowerStars();
-	void processLowerStarsParallel(const index_t& xPartition = 1, const index_t& yPartition = 1, const index_t& zPartition = 1);
+	void processLowerStarsWithoutPerturbation();
+	void processLowerStarsParallel(const index_t& xPatch = 1, const index_t& yPatch = 1, const index_t& zPatch = 1);
+	void processLowerStarsWithoutPerturbationParallel(const index_t& xPatch = 1, const index_t& yPatch = 1, 
+														const index_t& zPatch = 1);
 	void cancelPairs(const value_t& threshold, string orderDimBelow=">", string orderValueBelow=">",
 						string orderDimAbove="<", string orderValueAbove="<", bool print=true);
 	void prepareMorseSkeletonBelow(const value_t& threshold=INFTY, const value_t& tolerance=0, bool print=true);
@@ -97,41 +153,35 @@ public:
 	vector<vector<index_t>> getMorseSkeletonVoxelsAbove() const;
 	value_t getPerturbation() const;
 	vector<vector<Cube>> getCriticalCells() const;
-	vector<vector<vector<vector<index_t>>>> getCriticalVoxels() const;
 	vector<vector<size_t>> getNumberOfCriticalCells(const value_t& threshold=INFTY) const;
 	void checkV() const;
 	void checkBoundaryAndCoboundary() const;
-	void printC(const value_t& threshold=INFTY) const;
-	void printV() const;
-	void printMorseBoundary(const Cube& c) const;
-	void printFaces();
-	void plotV() const;
-	void plotV(uint8_t dim) const;
-	void plotFlow(const Cube& s) const;
-	void plotCoFlow(const Cube& s) const;
-	void plotConnections(const Cube& s, const Cube& t) const;
-	void plotMorseSkeleton() const;
-	void plotMorseSkeletonPixels() const;
-	void plotImage() const;
-	const vector<index_t> shape;
+	void printNumberOfCriticalCells(const value_t& threshold=INFTY) const;
 
 private:
 	value_t*** allocateMemory() const;
 	void getGridFromVector(const vector<value_t>& vector);
 	void setValue(const index_t& x, const index_t& y, const index_t& z, const value_t& value);
 	void addValue(const index_t& x, const index_t& y, const index_t& z, const value_t& value);
+	size_t hashVoxel(const vector<index_t>& voxelCoordinates) const;
 	Cube getCube(const index_t& x, const index_t& y, const index_t& z) const;
-	vector<Cube> getFaces(const Cube& cube);
+	vector<index_t> getParentVoxel(const Cube& cube) const;
 	value_t getMinimumDistance();
 	vector<Cube> getLowerStar(const index_t& x, const index_t& y, const index_t& z) const;
+	vector<Cube> getLowerStarWithoutPerturbation(const index_t& x, const index_t& y, const index_t& z) const;
+	void getLowerStarsWithoutPerturbation(vector<vector<Cube>>& lowerStars) const;
+	void getLowerStarsWithoutPerturbationBetween(vector<vector<Cube>>& lowerStars, 
+													const index_t& xMin, const index_t& xMax,
+													const index_t& yMin, const index_t& yMax,
+													const index_t& zMin, const index_t& zMax) const;
 	size_t numUnpairedFaces(const Cube& cube, const vector<Cube>& L) const;
-	size_t numUnpairedFacesParallel(const Cube& cube, const vector<Cube>& L) const;
 	Cube getUnpairedFace(const Cube& cube, const vector<Cube>& L) const;
-	Cube getUnpairedFaceParallel(const Cube& cube, const vector<Cube>& L) const;
 	void insertToC(const Cube& cube);
 	void insertToV(const Cube& cube0, const Cube& cube1);
-	void processLowerStarsBetween(const index_t& x_min, const index_t& x_max, const index_t& y_min, const index_t& y_max,
-									const index_t& z_min, const index_t& z_max);
+	void processLowerStarsBetween(const index_t& xMin, const index_t& xMax, const index_t& yMin, const index_t& yMax,
+									const index_t& zMin, const index_t& zMax);
+	void processLowerStarsWithoutPerturbationBetween(const index_t& xMin, const index_t& xMax, const index_t& yMin,
+														const index_t& yMax, const index_t& zMin, const index_t& zMax);
 	void traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
 	void traverseCoflow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
 	void getConnections(const Cube&s, const Cube& t, vector<tuple<Cube, Cube, Cube>>& connections) const;
@@ -144,19 +194,22 @@ private:
 	void cancelPairsDimDecreasingValueIncreasingAbove(const value_t& threshold=INFTY, bool print=true);
 	void cancelPairsDimIncreasingValueDecreasingAbove(const value_t& threshold=INFTY, bool print=true);
 	void cancelPairsDimIncreasingValueIncreasingAbove(const value_t& threshold=INFTY, bool print=true);
-	void cancelClosePairsBelow(const value_t& threshold, bool print=true);
-	void extractMorseComplex();
-	void processLowerStarsBackup();
+	const vector<index_t> shape;
+	index_t mYZ = shape[1]*shape[2];
 	value_t*** grid;
 	bool perturbed;
 	bool processedLowerStars;
 	value_t perturbation;
 	vector<vector<Cube>> C;
-	mutable std::mutex mutexC;
+#ifdef USE_CUBE_MAP
+	CubeMap<Cube> V;
+	CubeMap<Cube> coV;
+#else
 	unordered_map<Cube, Cube, Cube::Hash> V;
 	unordered_map<Cube, Cube, Cube::Hash> coV;
+#endif
+	mutable std::mutex mutexC;
 	mutable std::mutex mutexV;
-	unordered_map<Cube, vector<Cube>, Cube::Hash> faces;
 	set<Cube> morseSkeletonBelow;
 	set<Cube> morseSkeletonAbove;
 	set<vector<index_t>> morseSkeletonVoxelsBelow;

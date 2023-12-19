@@ -102,18 +102,18 @@ int main(int argc, char** argv) {
 
         MorseComplex mc(std::move(input), std::move(shape));
 
-        if (print) { cout << "Perturbing image ..." << endl; }
-        mc.perturbImage(epsilon);
+        //if (print) { cout << "Perturbing image ..." << endl; }
+        //mc.perturbImage(epsilon);
 
         if (print) { cout << "Processing Lower Stars ..." << endl; }
-        mc.processLowerStars();
+        mc.processLowerStarsWithoutPerturbationParallel(20, 20, 20);
 
         if (print) { cout << "Checking gradient vectorfield ... "; }
         mc.checkV();
 
         if (print) {
             cout << endl << "Critical cells:" << endl;
-            mc.printC(threshold); cout << endl;
+            mc.printNumberOfCriticalCells(threshold); cout << endl;
         }
 
         mc.cancelPairs(threshold, orderDimBelow, orderValueBelow, orderDimAbove, orderValueAbove, print);
