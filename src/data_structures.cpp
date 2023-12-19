@@ -234,7 +234,10 @@ void MorseComplex::perturbImage(const value_t& epsilon) {
 		return;
 	}
 
-	if (epsilon == INFTY) { perturbation = getMinimumDistance(); }
+	if (epsilon == 0) {
+		perturbation = 0;
+		return; 
+	} else if (epsilon == INFTY) { perturbation = getMinimumDistance(); }
 	else { perturbation = epsilon; }
 
 	if (perturbation != 0) {

@@ -40,10 +40,8 @@ int main(int argc, char** argv) {
 	fileFormat format;
     value_t epsilon = INFTY;
     value_t threshold = INFTY;
-    string orderDimBelow = ">";
-    string orderValueBelow = ">";
-    string orderDimAbove = "<";
-    string orderValueAbove = "<";
+    string orderDim = ">";
+    string orderValue = ">";
     bool print = false;
 	bool save = false;
     DataFrame df; 
@@ -53,10 +51,8 @@ int main(int argc, char** argv) {
 		if (arg == "--help" || arg == "-h") { print_usage_and_exit(0); }
         else if (arg == "--epsilon" || arg == "-e") { epsilon = stod(argv[++i]); }
         else if (arg == "--threshold" || arg == "-t") { threshold = stod(argv[++i]); }
-        else if (arg == "--dim_below" || arg == "-db") { orderDimBelow = argv[++i]; }
-        else if (arg == "--value_below" || arg == "-vb") { orderValueBelow = argv[++i]; }
-        else if (arg == "--dim_above" || arg == "-da") { orderDimAbove = argv[++i]; }
-        else if (arg == "--value_above" || arg == "-va") { orderValueAbove = argv[++i]; }
+        else if (arg == "--order_dim" || arg == "-od") { orderDim = argv[++i]; }
+        else if (arg == "--order_value" || arg == "-ov") { orderValue = argv[++i]; }
         else if (arg == "--print" || arg == "-p") { print = true; }
         else if (arg == "--save" || arg == "-s") {
             save = true;
@@ -68,12 +64,9 @@ int main(int argc, char** argv) {
     if (print) {
         cout << "Perturbation: " << epsilon << endl;
         cout << "Threshold: " << threshold << endl;
-        cout << "Canceling order below threshold:" << endl;
-        cout << "dimension: " << orderDimBelow << endl;
-        cout << "value: " << orderValueBelow << endl;
-        cout << "Canceling order above threshold:" << endl;
-        cout << "dimension: " << orderDimAbove << endl;
-        cout << "value: " << orderValueAbove << endl;
+        cout << "Canceling order:" << endl;
+        cout << "dimension: " << orderDim << endl;
+        cout << "value: " << orderValue << endl;
         if (save) { cout << "Saving results to " << saveName << "-options.json" << endl; }
     }
 
@@ -102,8 +95,8 @@ int main(int argc, char** argv) {
 
         MorseComplex mc(std::move(input), std::move(shape));
 
-        //if (print) { cout << "Perturbing image ..." << endl; }
-        //mc.perturbImage(epsilon);
+        if (print) { cout << "Perturbing image ..." << endl; }
+        mc.perturbImage(epsilon);
 
         if (print) { cout << "Processing Lower Stars ..." << endl; }
         mc.processLowerStarsWithoutPerturbationParallel(20, 20, 20);
@@ -116,7 +109,7 @@ int main(int argc, char** argv) {
             mc.printNumberOfCriticalCells(threshold); cout << endl;
         }
 
-        mc.cancelPairs(threshold, orderDimBelow, orderValueBelow, orderDimAbove, orderValueAbove, print);
+        mc.cancelPairs(threshold, orderDim, orderValue, orderDim, orderValue, print);
 
         if (print) { cout << endl << "Checking gradient vectorfield ... "; }
         mc.checkV();
@@ -133,8 +126,6 @@ int main(int argc, char** argv) {
             cout << "-----------------------------------------------------------------------------------" << endl;
             cout << "Saving results to " << directory + "/" + saveName << endl;
         }
-        df.saveToJson(directory + "/" + saveName +
-                        + "-dim_below_" + orderDimBelow + "-value_below_" + orderValueBelow
-                        + "-dim_above_" + orderDimAbove + "-value_above_" + orderValueAbove + ".json", threshold);
+        df.saveToJson(directory + "/" + saveName + "-order_dim_" + orderDim + "-order_value_" + orderValue + ".json", threshold);
     }
 }
