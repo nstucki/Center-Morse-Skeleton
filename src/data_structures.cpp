@@ -136,8 +136,8 @@ bool Cube::isFaceOf(const Cube& other) const {
 
 
 void Cube::print() const {
-	cout << "(" << birth << "," << x << "," << y << "," << z << "," << unsigned(type) << ","
-		<< unsigned(dim) << ")";
+	cout << "(" << birth << "," << x << "," << y << "," << z << "," << static_cast<int16_t>(type) << ","
+		<< static_cast<int16_t>(dim) << ")";
 }
 
 
@@ -717,26 +717,41 @@ void MorseComplex::extractMorseSkeletonAbove(const value_t& threshold) {
 
 
 vector<pair<Cube, uint8_t>> MorseComplex::getMorseBoundary(const Cube& s) const {
+#ifdef USE_CUBE_MAP
+	CubeMap<uint8_t> count(shape);
+	count.emplace(s, 1);
+#else
 	unordered_map<Cube, uint8_t, Cube::Hash> count;
 	count.emplace(s, 1);
-	set<Cube> boundary;
+#endif
 
 	vector<tuple<Cube, Cube,Cube>> flow;
 	traverseFlow(s, flow);
 
+	set<Cube> boundary;
 	uint8_t n;
 	for (const tuple<Cube, Cube, Cube>& f : flow) {
+#ifdef USE_CUBE_MAP
+		n = count.getValue(get<0>(f)) + count.getValue(get<2>(f));
+		if (n > 3) { count.emplace(get<2>(f), n%2 + 2); }
+		else { count.emplace(get<2>(f), n); }
+#else
 		auto it = count.find(get<2>(f));
 		if (it != count.end()) { n = count[get<0>(f)] + it->second; }
 		else { n = count[get<0>(f)]; }
 		if (n > 3) { count.insert_or_assign(get<2>(f), n%2 + 2); }
 		else { count.insert_or_assign(get<2>(f), n); }
+#endif
 		if (get<1>(f) == get<2>(f)) { boundary.insert(get<2>(f)); }
 	}
 
 	vector<pair<Cube, uint8_t>> result;
 	for (const Cube& b : boundary) {
+#ifdef USE_CUBE_MAP
+		result.push_back(pair(b, count.getValue(b)));
+#else
 		result.push_back(pair(b, count[b]));
+#endif
 	}
 
 	return result;
@@ -744,26 +759,40 @@ vector<pair<Cube, uint8_t>> MorseComplex::getMorseBoundary(const Cube& s) const 
 
 
 vector<pair<Cube, uint8_t>> MorseComplex::getMorseCoboundary(const Cube& s) const {
+#ifdef USE_CUBE_MAP
+	CubeMap<uint8_t> count(shape);
+	count.emplace(s, 1);
+#else
 	unordered_map<Cube, uint8_t, Cube::Hash> count;
 	count.emplace(s, 1);
-	set<Cube> coboundary;
-
+#endif
 	vector<tuple<Cube, Cube,Cube>> flow;
 	traverseCoflow(s, flow);
 
+	set<Cube> coboundary;
 	uint8_t n;
 	for (const tuple<Cube, Cube, Cube>& f : flow) {
+#ifdef USE_CUBE_MAP
+		n = count.getValue(get<0>(f)) + count.getValue(get<2>(f));
+		if (n > 3) { count.emplace(get<2>(f), n%2 + 2); }
+		else { count.emplace(get<2>(f), n); }
+#else
 		auto it = count.find(get<2>(f));
 		if (it != count.end()) { n = count[get<0>(f)] + it->second; }
 		else { n = count[get<0>(f)]; }
 		if (n > 3) { count.insert_or_assign(get<2>(f), n%2 + 2); }
 		else { count.insert_or_assign(get<2>(f), n); }
+#endif
 		if (get<1>(f) == get<2>(f)) { coboundary.insert(get<2>(f)); }
 	}
 
 	vector<pair<Cube, uint8_t>> result;
 	for (const Cube& c : coboundary) {
+#ifdef USE_CUBE_MAP
+		result.push_back(pair(c, count.getValue(c)));
+#else
 		result.push_back(pair(c, count[c]));
+#endif
 	}
 
 	return result;
@@ -1434,14 +1463,23 @@ void MorseComplex::processLowerStarsWithoutPerturbationBetween(const index_t& xM
 
 
 void MorseComplex::traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated) const {
+#ifdef USE_CUBE_MAP
+	CubeMap<size_t> nrIn(shape);
+	CubeMap<size_t> count(shape);
+#else
 	unordered_map<Cube, size_t, Cube::Hash> nrIn;
 	unordered_map<Cube, size_t, Cube::Hash> count;
+#endif
 	if (coordinated) {
 		traverseFlow(s, flow, false);
 		for (const tuple<Cube, Cube, Cube>& f : flow) {
+#ifdef USE_CUBE_MAP
+			nrIn.increment(get<2>(f));
+#else
 			auto it = nrIn.find(get<2>(f));
 			if (it != nrIn.end()) { ++(it->second); }
 			else { nrIn.emplace(get<2>(f), 1); }
+#endif
 		}
 		flow.clear();
 	}
@@ -1477,6 +1515,10 @@ void MorseComplex::traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& 
 					auto it = seen.find(c);
 					if (it == seen.end()) {
 						if (coordinated) {
+#ifdef USE_CUBE_MAP
+							count.increment(c);
+							if (count.getValue(c) != nrIn.getValue(c)) { continue; }
+#else
 							auto itCount = count.find(c);
 							auto itNrIn = nrIn.find(c);
 							if (itCount != count.end()) { 
@@ -1487,6 +1529,7 @@ void MorseComplex::traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& 
 								count.emplace(c, 1);
 								if (itNrIn->second != 1) { continue; }
 							}
+#endif
 						}
 						queue.push(c);
 						seen.insert(c);
@@ -1499,14 +1542,23 @@ void MorseComplex::traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& 
 
 
 void MorseComplex::traverseCoflow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated) const {
+#ifdef USE_CUBE_MAP
+	CubeMap<size_t> nrIn(shape);
+	CubeMap<size_t> count(shape);
+#else
 	unordered_map<Cube, size_t, Cube::Hash> nrIn;
 	unordered_map<Cube, size_t, Cube::Hash> count;
+#endif
 	if (coordinated) {
 		traverseCoflow(s, flow, false);
 		for (const tuple<Cube, Cube, Cube>& f : flow) {
+#ifdef USE_CUBE_MAP
+			nrIn.increment(get<2>(f));
+#else
 			auto it = nrIn.find(get<2>(f));
 			if (it != nrIn.end()) { ++(it->second); }
 			else { nrIn.emplace(get<2>(f), 1); }
+#endif
 		}
 		flow.clear();
 	}
@@ -1542,6 +1594,10 @@ void MorseComplex::traverseCoflow(const Cube& s, vector<tuple<Cube, Cube, Cube>>
 					auto it = seen.find(c);
 					if (it == seen.end()) {
 						if (coordinated) {
+#ifdef USE_CUBE_MAP
+							count.increment(c);
+							if (count.getValue(c) != nrIn.getValue(c)) { continue; }
+#else
 							auto itCount = count.find(c);
 							auto itNrIn = nrIn.find(c);
 							if (itCount != count.end()) { 
@@ -1552,6 +1608,7 @@ void MorseComplex::traverseCoflow(const Cube& s, vector<tuple<Cube, Cube, Cube>>
 								count.emplace(c, 1);
 								if (itNrIn->second != 1) { continue; }
 							}
+#endif
 						}
 						queue.push(c);
 						seen.insert(c);

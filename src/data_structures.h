@@ -89,9 +89,18 @@ public:
 		map[key.dim][hashCube(key)] = value;
 	};
 
+	void increment(const Cube& key) {
+		++map[key.dim][hashCube(key)];
+	}
+
+	void addValue(const Cube& key, T value) {
+		map[key.dim][hashCube(key)] += value;
+	}
+
 	T getValue(const Cube& key) const {
 		return map[key.dim][hashCube(key)];
 	};
+
 	void erase(const Cube& key) {
 		map[key.dim][hashCube(key)] = T();
 	};
