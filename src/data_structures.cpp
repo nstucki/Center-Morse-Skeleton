@@ -234,10 +234,7 @@ void MorseComplex::perturbImage(const value_t& epsilon) {
 		return;
 	}
 
-	if (epsilon == 0) {
-		perturbation = 0;
-		return; 
-	} else if (epsilon == INFTY) { perturbation = getMinimumDistance(); }
+	if (epsilon == 0) { perturbation = getMinimumDistance(); }
 	else { perturbation = epsilon; }
 
 	if (perturbation != 0) {
@@ -276,221 +273,14 @@ void MorseComplex::perturbImageMinimal() {
 }
 
 
-void MorseComplex::processLowerStars() {
-	if (!perturbed) { 
-		cerr << "Perturb Image first!" << endl;
-		return;
-	} else if (processedLowerStars) {
-		cerr << "Lower stars already processed!" << endl;
-		return;
+void MorseComplex::processLowerStars(const index_t& xPatch, const index_t& yPatch, const index_t& zPatch) {
+	if (!perturbed) {
+		if (xPatch == 1 && yPatch == 1 && zPatch == 1) { processLowerStarsWithoutPerturbation(); }
+		else { processLowerStarsWithoutPerturbationParallel(xPatch, yPatch, zPatch); }	
+	} else {
+		if (xPatch == 1 && yPatch == 1 && zPatch == 1) { processLowerStarsWithPerturbation(); }
+		else { processLowerStarsWithPerturbationParallel(xPatch, yPatch, zPatch); }
 	}
-
-	vector<Cube> L;
-	priority_queue<Cube, vector<Cube>, ReverseOrder> PQzero;
-	priority_queue<Cube, vector<Cube>, ReverseOrder> PQone;
-	Cube alpha;
-	Cube pair;
-
-	for (index_t x = 0; x < shape[0]; ++x) {
-		for (index_t y = 0; y < shape[1]; ++y) {
-			for (index_t z = 0; z < shape[2]; ++z) {
-				L = getLowerStar(x, y, z);
-
-				if (L.size() == 0) { C[0].push_back(Cube(*this, x, y, z, 0, 0)); }
-				else {
-					sort(L.begin(), L.end());
-
-					alpha = L[0];
-					V.emplace(Cube(*this, x, y, z, 0, 0), alpha); coV.emplace(alpha, Cube(*this, x, y, z, 0, 0));
-					L.erase(L.begin(), L.begin()+1);
-					
-					for (const Cube& beta : L) {
-						if (beta.dim == 1) { PQzero.push(beta); }
-						else if (alpha.isFaceOf(beta) && numUnpairedFaces(beta, L) == 1) { PQone.push(beta); }
-					}
-
-					while(!PQzero.empty() || !PQone.empty()) {
-						while(!PQone.empty()) {
-							alpha = PQone.top(); PQone.pop();
-							if (numUnpairedFaces(alpha, L) == 0) { PQzero.push(alpha); }
-							else {	
-								pair = getUnpairedFace(alpha, L);
-								V.emplace(pair, alpha); coV.emplace(alpha, pair);
-								removeFromPQ(pair, PQzero);
-								L.erase(remove(L.begin(), L.end(), pair), L.end());
-								L.erase(remove(L.begin(), L.end(), alpha), L.end());
-								for (const Cube& beta : L) {
-									if ((alpha.isFaceOf(beta) || pair.isFaceOf(beta)) && numUnpairedFaces(beta, L) == 1) {
-										PQone.push(beta);
-									}
-								}
-							}
-						}
-						if (!PQzero.empty()) {
-							alpha = PQzero.top();
-							PQzero.pop();
-							C[alpha.dim].push_back(alpha);
-							L.erase(remove(L.begin(), L.end(), alpha), L.end());
-							for (const Cube& beta : L) {
-								if (alpha.isFaceOf(beta) && numUnpairedFaces(beta, L) == 1) {
-									PQone.push(beta);
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	processedLowerStars = true;
-}
-
-
-void MorseComplex::processLowerStarsWithoutPerturbation() {
-	if (processedLowerStars) {
-		cerr << "Lower stars already processed!" << endl;
-		return;
-	}
-
-	vector<Cube> L;
-	priority_queue<Cube, vector<Cube>, ReverseOrder> PQzero;
-	priority_queue<Cube, vector<Cube>, ReverseOrder> PQone;
-	Cube alpha;
-	Cube pair;
-
-	vector<vector<Cube>> lowerStars;
-	getLowerStarsWithoutPerturbation(lowerStars);
-
-	for (index_t x = 0; x < shape[0]; ++x) {
-		for (index_t y = 0; y < shape[1]; ++y) {
-			for (index_t z = 0; z < shape[2]; ++z) {
-				L = lowerStars[hashVoxel(vector<index_t> {x,y,z})];
-
-				if (L.size() == 0) { C[0].push_back(Cube(*this, x, y, z, 0, 0)); }
-				else {
-					sort(L.begin(), L.end());
-
-					alpha = L[0];
-					V.emplace(Cube(*this, x, y, z, 0, 0), alpha); coV.emplace(alpha, Cube(*this, x, y, z, 0, 0));
-					L.erase(L.begin(), L.begin()+1);
-					
-					for (const Cube& beta : L) {
-						if (beta.dim == 1) { PQzero.push(beta); }
-						else if (alpha.isFaceOf(beta) && numUnpairedFaces(beta, L) == 1) { PQone.push(beta); }
-					}
-
-					while(!PQzero.empty() || !PQone.empty()) {
-						while(!PQone.empty()) {
-							alpha = PQone.top(); PQone.pop();
-							if (numUnpairedFaces(alpha, L) == 0) { PQzero.push(alpha); }
-							else {	
-								pair = getUnpairedFace(alpha, L);
-								V.emplace(pair, alpha); coV.emplace(alpha, pair);
-								removeFromPQ(pair, PQzero);
-								L.erase(remove(L.begin(), L.end(), pair), L.end());
-								L.erase(remove(L.begin(), L.end(), alpha), L.end());
-								for (const Cube& beta : L) {
-									if ((alpha.isFaceOf(beta) || pair.isFaceOf(beta)) && numUnpairedFaces(beta, L) == 1) {
-										PQone.push(beta);
-									}
-								}
-							}
-						}
-						if (!PQzero.empty()) {
-							alpha = PQzero.top();
-							PQzero.pop();
-							C[alpha.dim].push_back(alpha);
-							L.erase(remove(L.begin(), L.end(), alpha), L.end());
-							for (const Cube& beta : L) {
-								if (alpha.isFaceOf(beta) && numUnpairedFaces(beta, L) == 1) {
-									PQone.push(beta);
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	processedLowerStars = true;
-}
-
-
-void MorseComplex::processLowerStarsParallel(const index_t& xPatch, const index_t& yPatch, const index_t& zPatch) {
-	if (!perturbed) { 
-		cerr << "Perturb Image first!" << endl;
-		return;
-	} else if (processedLowerStars) {
-		cerr << "Lower stars already processed!" << endl;
-		return;
-	}
-
-	index_t batchX = shape[0]/xPatch + 1;
-	index_t batchY = shape[1]/yPatch + 1;
-	index_t batchZ = shape[2]/zPatch + 1;
-
-	vector<std::future<void>> futures;
-
-	for (index_t x = 0; x < xPatch; ++x) {
-		for (index_t y = 0; y < yPatch; ++y) {
-			for (index_t z = 0; z < zPatch; ++z) {
-				index_t xMin = x * batchX;
-				index_t xMax = xMin + batchX;
-				index_t yMin = y * batchY;
-				index_t yMax = yMin + batchY;
-				index_t zMin = z * batchZ;
-				index_t zMax = zMin + batchZ;
-				futures.push_back(async(launch::async, &MorseComplex::processLowerStarsBetween,
-									this, xMin, xMax, yMin, yMax, zMin, zMax));
-			}
-		}
-	}
-
-	for (auto& future : futures) {
-        future.wait();
-    }
-
-	processedLowerStars = true;
-}
-
-
-void MorseComplex::processLowerStarsWithoutPerturbationParallel(const index_t& xPatch, const index_t& yPatch, const index_t& zPatch) {
-	if (processedLowerStars) {
-		cerr << "Lower stars already processed!" << endl;
-		return;
-	}
-
-	vector<vector<Cube>> lowerStars;
-	getLowerStarsWithoutPerturbation(lowerStars);
-
-	index_t batchX = shape[0]/xPatch + 1;
-	index_t batchY = shape[1]/yPatch + 1;
-	index_t batchZ = shape[2]/zPatch + 1;
-
-	vector<std::future<void>> futures;
-
-	for (index_t x = 0; x < xPatch; ++x) {
-		for (index_t y = 0; y < yPatch; ++y) {
-			for (index_t z = 0; z < zPatch; ++z) {
-				index_t xMin = x * batchX;
-				index_t xMax = xMin + batchX;
-				index_t yMin = y * batchY;
-				index_t yMax = yMin + batchY;
-				index_t zMin = z * batchZ;
-				index_t zMax = zMin + batchZ;
-				futures.push_back(async(launch::async, &MorseComplex::processLowerStarsWithoutPerturbationBetween,
-									this, xMin, xMax, yMin, yMax, zMin, zMax));
-			}
-		}
-	}
-
-	for (auto& future : futures) {
-        future.wait();
-    }
-
-	processedLowerStars = true;
 }
 
 
@@ -1332,6 +1122,148 @@ void MorseComplex::insertToV(const Cube& cube0, const Cube& cube1) {
 }
 
 
+void MorseComplex::processLowerStarsWithPerturbation() {
+	if (!perturbed) { 
+		cerr << "Perturb Image first!" << endl;
+		return;
+	} else if (processedLowerStars) {
+		cerr << "Lower stars already processed!" << endl;
+		return;
+	}
+
+	vector<Cube> L;
+	priority_queue<Cube, vector<Cube>, ReverseOrder> PQzero;
+	priority_queue<Cube, vector<Cube>, ReverseOrder> PQone;
+	Cube alpha;
+	Cube pair;
+
+	for (index_t x = 0; x < shape[0]; ++x) {
+		for (index_t y = 0; y < shape[1]; ++y) {
+			for (index_t z = 0; z < shape[2]; ++z) {
+				L = getLowerStar(x, y, z);
+
+				if (L.size() == 0) { C[0].push_back(Cube(*this, x, y, z, 0, 0)); }
+				else {
+					sort(L.begin(), L.end());
+
+					alpha = L[0];
+					V.emplace(Cube(*this, x, y, z, 0, 0), alpha); coV.emplace(alpha, Cube(*this, x, y, z, 0, 0));
+					L.erase(L.begin(), L.begin()+1);
+					
+					for (const Cube& beta : L) {
+						if (beta.dim == 1) { PQzero.push(beta); }
+						else if (alpha.isFaceOf(beta) && numUnpairedFaces(beta, L) == 1) { PQone.push(beta); }
+					}
+
+					while(!PQzero.empty() || !PQone.empty()) {
+						while(!PQone.empty()) {
+							alpha = PQone.top(); PQone.pop();
+							if (numUnpairedFaces(alpha, L) == 0) { PQzero.push(alpha); }
+							else {	
+								pair = getUnpairedFace(alpha, L);
+								V.emplace(pair, alpha); coV.emplace(alpha, pair);
+								removeFromPQ(pair, PQzero);
+								L.erase(remove(L.begin(), L.end(), pair), L.end());
+								L.erase(remove(L.begin(), L.end(), alpha), L.end());
+								for (const Cube& beta : L) {
+									if ((alpha.isFaceOf(beta) || pair.isFaceOf(beta)) && numUnpairedFaces(beta, L) == 1) {
+										PQone.push(beta);
+									}
+								}
+							}
+						}
+						if (!PQzero.empty()) {
+							alpha = PQzero.top();
+							PQzero.pop();
+							C[alpha.dim].push_back(alpha);
+							L.erase(remove(L.begin(), L.end(), alpha), L.end());
+							for (const Cube& beta : L) {
+								if (alpha.isFaceOf(beta) && numUnpairedFaces(beta, L) == 1) {
+									PQone.push(beta);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	processedLowerStars = true;
+}
+
+
+void MorseComplex::processLowerStarsWithoutPerturbation() {
+	if (processedLowerStars) {
+		cerr << "Lower stars already processed!" << endl;
+		return;
+	}
+
+	vector<Cube> L;
+	priority_queue<Cube, vector<Cube>, ReverseOrder> PQzero;
+	priority_queue<Cube, vector<Cube>, ReverseOrder> PQone;
+	Cube alpha;
+	Cube pair;
+
+	vector<vector<Cube>> lowerStars;
+	getLowerStarsWithoutPerturbation(lowerStars);
+
+	for (index_t x = 0; x < shape[0]; ++x) {
+		for (index_t y = 0; y < shape[1]; ++y) {
+			for (index_t z = 0; z < shape[2]; ++z) {
+				L = lowerStars[hashVoxel(vector<index_t> {x,y,z})];
+
+				if (L.size() == 0) { C[0].push_back(Cube(*this, x, y, z, 0, 0)); }
+				else {
+					sort(L.begin(), L.end());
+
+					alpha = L[0];
+					V.emplace(Cube(*this, x, y, z, 0, 0), alpha); coV.emplace(alpha, Cube(*this, x, y, z, 0, 0));
+					L.erase(L.begin(), L.begin()+1);
+					
+					for (const Cube& beta : L) {
+						if (beta.dim == 1) { PQzero.push(beta); }
+						else if (alpha.isFaceOf(beta) && numUnpairedFaces(beta, L) == 1) { PQone.push(beta); }
+					}
+
+					while(!PQzero.empty() || !PQone.empty()) {
+						while(!PQone.empty()) {
+							alpha = PQone.top(); PQone.pop();
+							if (numUnpairedFaces(alpha, L) == 0) { PQzero.push(alpha); }
+							else {	
+								pair = getUnpairedFace(alpha, L);
+								V.emplace(pair, alpha); coV.emplace(alpha, pair);
+								removeFromPQ(pair, PQzero);
+								L.erase(remove(L.begin(), L.end(), pair), L.end());
+								L.erase(remove(L.begin(), L.end(), alpha), L.end());
+								for (const Cube& beta : L) {
+									if ((alpha.isFaceOf(beta) || pair.isFaceOf(beta)) && numUnpairedFaces(beta, L) == 1) {
+										PQone.push(beta);
+									}
+								}
+							}
+						}
+						if (!PQzero.empty()) {
+							alpha = PQzero.top();
+							PQzero.pop();
+							C[alpha.dim].push_back(alpha);
+							L.erase(remove(L.begin(), L.end(), alpha), L.end());
+							for (const Cube& beta : L) {
+								if (alpha.isFaceOf(beta) && numUnpairedFaces(beta, L) == 1) {
+									PQone.push(beta);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	processedLowerStars = true;
+}
+
+
 void MorseComplex::processLowerStarsBetween(const index_t& xMin, const index_t& xMax, const index_t& yMin, const index_t& yMax, 
 											const index_t& zMin, const index_t& zMax) {
 	priority_queue<Cube, vector<Cube>, ReverseOrder> PQzero;
@@ -1459,6 +1391,82 @@ void MorseComplex::processLowerStarsWithoutPerturbationBetween(const index_t& xM
 			}
 		}
 	}
+}
+
+
+void MorseComplex::processLowerStarsWithPerturbationParallel(const index_t& xPatch, const index_t& yPatch, const index_t& zPatch) {
+	if (!perturbed) { 
+		cerr << "Perturb Image first!" << endl;
+		return;
+	} else if (processedLowerStars) {
+		cerr << "Lower stars already processed!" << endl;
+		return;
+	}
+
+	index_t batchX = shape[0]/xPatch + 1;
+	index_t batchY = shape[1]/yPatch + 1;
+	index_t batchZ = shape[2]/zPatch + 1;
+
+	vector<std::future<void>> futures;
+
+	for (index_t x = 0; x < xPatch; ++x) {
+		for (index_t y = 0; y < yPatch; ++y) {
+			for (index_t z = 0; z < zPatch; ++z) {
+				index_t xMin = x * batchX;
+				index_t xMax = xMin + batchX;
+				index_t yMin = y * batchY;
+				index_t yMax = yMin + batchY;
+				index_t zMin = z * batchZ;
+				index_t zMax = zMin + batchZ;
+				futures.push_back(async(launch::async, &MorseComplex::processLowerStarsBetween,
+									this, xMin, xMax, yMin, yMax, zMin, zMax));
+			}
+		}
+	}
+
+	for (auto& future : futures) {
+        future.wait();
+    }
+
+	processedLowerStars = true;
+}
+
+
+void MorseComplex::processLowerStarsWithoutPerturbationParallel(const index_t& xPatch, const index_t& yPatch, const index_t& zPatch) {
+	if (processedLowerStars) {
+		cerr << "Lower stars already processed!" << endl;
+		return;
+	}
+
+	vector<vector<Cube>> lowerStars;
+	getLowerStarsWithoutPerturbation(lowerStars);
+
+	index_t batchX = shape[0]/xPatch + 1;
+	index_t batchY = shape[1]/yPatch + 1;
+	index_t batchZ = shape[2]/zPatch + 1;
+
+	vector<std::future<void>> futures;
+
+	for (index_t x = 0; x < xPatch; ++x) {
+		for (index_t y = 0; y < yPatch; ++y) {
+			for (index_t z = 0; z < zPatch; ++z) {
+				index_t xMin = x * batchX;
+				index_t xMax = xMin + batchX;
+				index_t yMin = y * batchY;
+				index_t yMax = yMin + batchY;
+				index_t zMin = z * batchZ;
+				index_t zMax = zMin + batchZ;
+				futures.push_back(async(launch::async, &MorseComplex::processLowerStarsWithoutPerturbationBetween,
+									this, xMin, xMax, yMin, yMax, zMin, zMax));
+			}
+		}
+	}
+
+	for (auto& future : futures) {
+        future.wait();
+    }
+
+	processedLowerStars = true;
 }
 
 

@@ -143,13 +143,9 @@ public:
 	value_t getValue(const index_t& x, const index_t& y, const index_t& z) const;
 	value_t getBirth(const index_t& x, const index_t& y, const index_t& z, 
 						const uint8_t& type, const uint8_t& dim) const;
-	void perturbImage(const value_t& epsilon=INFTY);
+	void perturbImage(const value_t& epsilon=0);
 	void perturbImageMinimal();
-	void processLowerStars();
-	void processLowerStarsWithoutPerturbation();
-	void processLowerStarsParallel(const index_t& xPatch = 1, const index_t& yPatch = 1, const index_t& zPatch = 1);
-	void processLowerStarsWithoutPerturbationParallel(const index_t& xPatch = 1, const index_t& yPatch = 1, 
-														const index_t& zPatch = 1);
+	void processLowerStars(const index_t& xPatch=1, const index_t& yPatch=1, const index_t& zPatch=1);
 	void cancelPairs(const value_t& threshold, string orderDimBelow=">", string orderValueBelow=">",
 						string orderDimAbove="<", string orderValueAbove="<", bool print=true);
 	void prepareMorseSkeletonBelow(const value_t& threshold=INFTY, const value_t& tolerance=0, bool print=true);
@@ -187,10 +183,15 @@ private:
 	Cube getUnpairedFace(const Cube& cube, const vector<Cube>& L) const;
 	void insertToC(const Cube& cube);
 	void insertToV(const Cube& cube0, const Cube& cube1);
+	void processLowerStarsWithPerturbation();
+	void processLowerStarsWithoutPerturbation();
 	void processLowerStarsBetween(const index_t& xMin, const index_t& xMax, const index_t& yMin, const index_t& yMax,
 									const index_t& zMin, const index_t& zMax);
 	void processLowerStarsWithoutPerturbationBetween(const index_t& xMin, const index_t& xMax, const index_t& yMin,
 														const index_t& yMax, const index_t& zMin, const index_t& zMax);
+	void processLowerStarsWithPerturbationParallel(const index_t& xPatch = 1, const index_t& yPatch = 1, const index_t& zPatch = 1);
+	void processLowerStarsWithoutPerturbationParallel(const index_t& xPatch = 1, const index_t& yPatch = 1, 
+														const index_t& zPatch = 1);
 	void traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
 	void traverseCoflow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
 	void getConnections(const Cube&s, const Cube& t, vector<tuple<Cube, Cube, Cube>>& connections) const;

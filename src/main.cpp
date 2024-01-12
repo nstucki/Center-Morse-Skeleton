@@ -77,14 +77,15 @@ int main(int argc, char** argv) {
 
     MorseComplex mc(std::move(input), std::move(shape));
 
-    //mc.perturbImage(1);
+    mc.perturbImage(1);
+    cout << mc.getPerturbation() << endl;
 
     auto start = high_resolution_clock::now();
 
     //mc.processLowerStars();
     //mc.processLowerStarsParallel(10, 10, 10);
     //mc.processLowerStarsWithoutPerturbation();
-    mc.processLowerStarsWithoutPerturbationParallel(10, 10, 10);
+    mc.processLowerStars(1, 1, 1);
 
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(stop - start);
