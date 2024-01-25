@@ -10,9 +10,10 @@ def distance_transform(image):
     distance_f = distance_transform_edt(distance_f)
     distance_b = np.copy(1-image)
     distance_b = distance_transform_edt(distance_b)
-    signed_distance = -distance_f + distance_b
+    signed_distance = distance_f - distance_b
 
     return signed_distance
+
 
 def minimum_distance_in(image):
     min_distances = []
@@ -20,6 +21,7 @@ def minimum_distance_in(image):
     min_distance = np.min(np.abs(values[1:]-values[:-1]))
 
     return min_distance
+
 
 def plot_morse_skeleton(MC, image=np.zeros((0)), threshold=0, plot_below=True, plot_above=False, plot_critical=True):
     if image.shape != (0):

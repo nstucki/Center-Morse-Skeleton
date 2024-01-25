@@ -318,7 +318,7 @@ void MorseComplex::cancelPairs(const value_t& threshold, string orderDimBelow, s
 }
 
 
-void MorseComplex::prepareMorseSkeletonBelow(const value_t& threshold, const value_t& tolerance, bool print) {
+void MorseComplex::cancelLowPersistencePairsBelow(const value_t& threshold, const value_t& epsilon, bool print) {
 	if (print) {
 		cout << "Critical cells:" << endl;
 		printNumberOfCriticalCells(threshold);
@@ -329,53 +329,29 @@ void MorseComplex::prepareMorseSkeletonBelow(const value_t& threshold, const val
 		return;
 	}
 
-	for (uint8_t dim = 0; dim < 4; ++dim) { sort(C[dim].begin(), C[dim].end()); }
-
-	bool canceled = true;
 	vector<Cube> cancelable;
-	while (canceled) {
-		canceled = false;
-		for (uint8_t dim = 4; dim-- > 2;) {
+	for (uint8_t dim = 4; dim-- > 1;) {
+		sort(C[dim].begin(), C[dim].end());
+
+		bool canceled = true;	
+		while (canceled) {
+			canceled = false;
 			for (auto it = C[dim].rbegin(); it != C[dim].rend(); ++it) {
 				Cube s = *it;
-
 				if (s.birth >= threshold) { continue; }
 
 				vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
-
 				cancelable.clear();
 				for (const pair<Cube, uint8_t> b : boundary) {
 					if (get<1>(b) == 1) { cancelable.push_back(get<0>(b)); }
 				}
 				if (cancelable.size() == 0) { continue; }
+
 				sort(cancelable.begin(), cancelable.end());
+				Cube t = cancelable.back();
+				if (s.birth - t.birth > epsilon) { continue; }
 
-				cancelPair(s, cancelable.back());
-				canceled = true;
-
-				if (print) { printNumberOfCriticalCells(threshold); }
-				break;
-			}
-			if (canceled) { break; }
-		}
-
-		if (tolerance != 0) {
-			for (auto it = C[0].rbegin(); it != C[0].rend(); ++it) {
-				Cube t = *it;
-
-				if (t.birth >= threshold || t.birth < threshold - tolerance) { continue; }
-
-				vector<pair<Cube, uint8_t>> coboundary = getMorseCoboundary(t);
-
-				cancelable.clear();
-				for (const pair<Cube, uint8_t> c : coboundary) {
-					if (get<1>(c) == 1) { cancelable.push_back(get<0>(c)); }
-				}
-				if (cancelable.size() == 0) { continue; }
-				sort(cancelable.begin(), cancelable.end());
-				if (cancelable.front().birth >= threshold) { continue; }
-
-				cancelPair(cancelable.front(), t);
+				cancelPair(s, t);
 				canceled = true;
 
 				if (print) { printNumberOfCriticalCells(threshold); }
@@ -384,6 +360,65 @@ void MorseComplex::prepareMorseSkeletonBelow(const value_t& threshold, const val
 		}
 	}
 	if (print) { cout << endl; }
+}
+
+
+void MorseComplex::cancelBoundaryPairsBelow(const value_t& threshold, const value_t& delta, bool print) {
+	if (print) {
+		cout << "Critical cells:" << endl;
+		printNumberOfCriticalCells(threshold);
+	}
+
+	if (threshold == -INFTY) {
+		if (print) { cout << endl; }
+		return;
+	}
+
+	vector<Cube> cancelable;
+	for (uint8_t dim = 4; dim-- > 1;) {
+		sort(C[dim].begin(), C[dim].end());
+
+		bool canceled = true;
+		while (canceled) {
+			canceled = false;
+			for (auto it = C[dim].rbegin(); it != C[dim].rend(); ++it) {
+				Cube s = *it;
+				if (s.birth >= threshold || s.birth < threshold - delta) { continue; }
+
+				vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
+				cancelable.clear();
+				for (const pair<Cube, uint8_t> b : boundary) {
+					if (get<1>(b) == 1) { cancelable.push_back(get<0>(b)); }
+				}
+				if (cancelable.size() == 0) { continue; }
+
+				sort(cancelable.begin(), cancelable.end());
+				Cube t = cancelable.back();
+				if (t.birth < threshold - delta) { continue; }
+
+				cancelPair(s, t);
+				canceled = true;
+
+				if (print) { printNumberOfCriticalCells(threshold); }
+				break;
+			}
+		}
+	}
+	if (print) { cout << endl; }
+}
+
+
+void MorseComplex::prepareMorseSkeletonBelow(const value_t& threshold, const value_t& epsilon, const value_t& delta, bool print) {
+	if (epsilon >= 0) {
+		if (print) { cout << "Canceling Pairs below " << threshold << " of persistence < " << epsilon << ":" << endl; }
+		cancelLowPersistencePairsBelow(threshold, epsilon, print);
+	}
+
+	if (delta >= 0) {
+		if (print) { cout << endl << "Canceling Pairs below " << threshold << " with distance < " << delta << " to the boundary:" << endl; }
+		cancelBoundaryPairsBelow(threshold, delta, print);
+	}
+	
 }
 
 
@@ -460,6 +495,7 @@ void MorseComplex::extractMorseSkeletonBelow(const value_t& threshold) {
 	for (uint8_t dim = 0; dim < 4; ++dim) {
 		for (const Cube& c : C[dim]) {
 			if (c.birth >= threshold) { continue; }
+			morseSkeletonBelow.insert(c);
 			flow.clear();
 			traverseFlow(c, flow);
 			for (const tuple<Cube, Cube, Cube>& t : flow) {
@@ -487,6 +523,7 @@ void MorseComplex::extractMorseSkeletonAbove(const value_t& threshold) {
 	for (uint8_t dim = 0; dim < 4; ++dim) {
 		for (const Cube& c : C[dim]) {
 			if (c.birth < threshold) { continue; }
+			morseSkeletonAbove.insert(c);
 			flow.clear();
 			traverseCoflow(c, flow);
 			for (const tuple<Cube, Cube, Cube>& t : flow) {

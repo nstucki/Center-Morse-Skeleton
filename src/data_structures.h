@@ -148,7 +148,9 @@ public:
 	void processLowerStars(const index_t& xPatch=1, const index_t& yPatch=1, const index_t& zPatch=1);
 	void cancelPairs(const value_t& threshold, string orderDimBelow=">", string orderValueBelow=">",
 						string orderDimAbove="<", string orderValueAbove="<", bool print=true);
-	void prepareMorseSkeletonBelow(const value_t& threshold=INFTY, const value_t& tolerance=0, bool print=true);
+	void cancelLowPersistencePairsBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, bool print=true);
+	void cancelBoundaryPairsBelow(const value_t& threshold=INFTY, const value_t& delta=0, bool print=true);
+	void prepareMorseSkeletonBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, const value_t& delta=0, bool print=true);
 	void prepareMorseSkeletonAbove(const value_t& threshold=INFTY, const value_t& tolerance=0, bool print=true);
 	void extractMorseSkeletonBelow(const value_t& threshold=INFTY);
 	void extractMorseSkeletonAbove(const value_t& threshold=INFTY);

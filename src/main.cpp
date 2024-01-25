@@ -77,29 +77,34 @@ int main(int argc, char** argv) {
 
     MorseComplex mc(std::move(input), std::move(shape));
 
-    mc.perturbImage(1);
-    cout << mc.getPerturbation() << endl;
+    //mc.perturbImage(1);
+    //cout << mc.getPerturbation() << endl;
 
-    auto start = high_resolution_clock::now();
+    //auto start = high_resolution_clock::now();
 
     //mc.processLowerStars();
     //mc.processLowerStarsParallel(10, 10, 10);
     //mc.processLowerStarsWithoutPerturbation();
-    mc.processLowerStars(1, 1, 1);
+    mc.processLowerStars(10, 10, 10);
 
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<milliseconds>(stop - start);
-    cout << duration.count() << " ms" << endl;
+    vector<vector<Cube>> critical = mc.getCriticalCells();
+    for (auto& c : critical[0]) {
+        cout << c.birth << " " << mc.getValue(c.x, c.y, c.z) << endl;
+    }
+
+    //auto stop = high_resolution_clock::now();
+    //auto duration = duration_cast<milliseconds>(stop - start);
+    //cout << duration.count() << " ms" << endl;
 
     mc.checkV();
 
     // // cout << mc.getPerturbation() << endl;
 
-    mc.printNumberOfCriticalCells(threshold); cout << endl;
+    //mc.printNumberOfCriticalCells(threshold); cout << endl;
 
-    mc.cancelPairs(threshold, ">", ">", "<", "<", print);
+    //mc.cancelPairs(threshold, ">", ">", "<", "<", print);
 
-    mc.checkV();
+    //mc.checkV();
 
     // if (print) {
     //     cout << endl << "Morse boundary:" << endl;
