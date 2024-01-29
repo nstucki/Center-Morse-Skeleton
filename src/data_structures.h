@@ -150,7 +150,8 @@ public:
 						string orderDimAbove="<", string orderValueAbove="<", bool print=true);
 	void cancelLowPersistencePairsBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, bool print=true);
 	void cancelBoundaryPairsBelow(const value_t& threshold=INFTY, const value_t& delta=0, bool print=true);
-	void prepareMorseSkeletonBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, const value_t& delta=0, bool print=true);
+	void prepareMorseSkeletonBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, const value_t& delta=-1, bool print=true);
+	void prepareMorseSkeletonTestBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, const value_t& delta=-1, bool print=true);
 	void prepareMorseSkeletonAbove(const value_t& threshold=INFTY, const value_t& tolerance=0, bool print=true);
 	void extractMorseSkeletonBelow(const value_t& threshold=INFTY);
 	void extractMorseSkeletonAbove(const value_t& threshold=INFTY);
