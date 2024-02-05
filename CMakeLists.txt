@@ -12,6 +12,10 @@ project(DMT)
 
 find_package(pybind11 REQUIRED)
 
+find_package(Threads REQUIRED)
+add_compile_options("-pthread")
+link_libraries("-pthread")
+
 pybind11_add_module(morse_complex
     src/dmt.cpp
     src/data_structures.cpp
