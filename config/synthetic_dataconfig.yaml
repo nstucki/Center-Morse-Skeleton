@@ -1,6 +1,6 @@
 DATA:
   DIM: 3                                                        # data dimension
-  DATA_PATH: './data/synthetic/'                                # Path to dataset
+  DATA_PATH: '/home/home/supro/projects/DMT-images/data/synthetic/'                                # Path to dataset
   FORMAT: '.nii.gz'
   DATASET: 'synthetic'                                          # Dataset name
   IMG_SIZE: [32, 32, 32]                                        # Input image size
