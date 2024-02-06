@@ -2,4 +2,11 @@ build
 examples
 topcow_ct
 preprocess_data.ipynb
-data
+data/*
+*__pycache__*
+*.pyc
+*.pyo
+*.pyd
+runs/*
+models/*
+.vscode/*

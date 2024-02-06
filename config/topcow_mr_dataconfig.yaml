@@ -1,0 +1,11 @@
+DATA:
+  DIM: 3                                                        # data dimension
+  DATA_PATH: './data/topcow_mr/'                                # Path to dataset
+  FORMAT: '.npy'
+  DATASET: 'topcow_mr'                                          # Dataset name
+  IMG_SIZE: [16, 24, 24]                                        # Input image size
+  TRAIN_SAMPLES: 90
+  VAL_SAMPLES: 10
+  NUM_PATCH: 8                                                  # no of patch from each volume
+  IN_CHANNELS: 1
+  OUT_CHANNELS: 1
