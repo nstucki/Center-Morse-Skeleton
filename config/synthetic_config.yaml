@@ -4,7 +4,7 @@ MODEL:
   STRIDES: [2, 2, 2, 2]
 
 LOSS:
-  USE_LOSS: 'Dice_ClDice'     # Avilable options 'Dice', 'ClDice', 'Dice_clDice'
+  USE_LOSS: 'Dice_ClDice'     # Avilable options 'Dice', 'ClDice', 'Dice_ClDice'
   SKEL_METHOD: 'Shit'                # Avilable options 'DMT', 'Shit', 'Menten', 'Viti' 
   ALPHA: 0.5
 

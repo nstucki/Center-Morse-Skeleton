@@ -168,12 +168,12 @@ def main(args):
             exp_name = config.LOSS.USE_LOSS
         else:
             exp_name = config.LOSS.USE_LOSS + '_scratch'
-        loss_function = monai.losses.DiceLoss(sigmoid=True)
+        loss_function = monai.losses.DiceLoss(sigmoid=False)
     if config.LOSS.USE_LOSS == 'Dice_ClDice':
         if args.pretrained:
-            exp_name = config.LOSS.USE_LOSS+'_alpha_'+str(config.LOSS.ALPHA)
+            exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.SKEL_METHOD+'_alpha_'+str(config.LOSS.ALPHA)
         else:
-            exp_name = config.LOSS.USE_LOSS+'_alpha_'+str(config.LOSS.ALPHA)+'_scratch'
+            exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.SKEL_METHOD+'_alpha_'+str(config.LOSS.ALPHA)+'_scratch'
         loss_function = soft_dice_cldice(mode=config.LOSS.SKEL_METHOD, alpha=config.LOSS.ALPHA)
 
     # Copy config files and verify if files exist
@@ -232,6 +232,7 @@ def main(args):
             elif dataconfig.DATA.IN_CHANNELS == 3:
                 outputs = model(torch.squeeze(inputs).permute(0,3,1,2))
             #print(outputs.size())
+            outputs = torch.sigmoid(outputs)
             if config.LOSS.USE_LOSS == 'Dice':
                 loss = loss_function(outputs, labels)
             else:

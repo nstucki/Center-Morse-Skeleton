@@ -4,8 +4,8 @@ DATA:
   FORMAT: '.nii.gz'
   DATASET: 'synthetic'                                          # Dataset name
   IMG_SIZE: [32, 32, 32]                                        # Input image size
-  TRAIN_SAMPLES: 1
-  VAL_SAMPLES: 1
+  TRAIN_SAMPLES: 100
+  VAL_SAMPLES: 10
   NUM_PATCH: 8                                                  # no of patch from each volume
   IN_CHANNELS: 1
   OUT_CHANNELS: 1
