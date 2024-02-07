@@ -23,13 +23,13 @@ class soft_cldice(nn.Module):
         if mode == 'Shit':
             self.skeletonization_module = ShitSkeletonize(num_iter=10)
 
-    def forward(y_true, y_pred):
+    def forward(self, y_true, y_pred):
         skel_pred = self.skeletonization_module(y_pred)
         skel_true = self.skeletonization_module(y_true)
         tprec = (torch.sum(torch.multiply(skel_pred, y_true)[:,1:,...])+self.smooth)/(torch.sum(skel_pred[:,1:,...])+self.smooth)    
         tsens = (torch.sum(torch.multiply(skel_true, y_pred)[:,1:,...])+self.smooth)/(torch.sum(skel_true[:,1:,...])+self.smooth)    
         cl_dice = 1.- 2.0*(tprec*tsens)/(tprec+tsens)
-        return cl_dice
+        return cl_dice, {}
 
 
 def soft_dice(y_true, y_pred):
