@@ -175,6 +175,12 @@ def main(args):
         else:
             exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.SKEL_METHOD+'_alpha_'+str(config.LOSS.ALPHA)+'_scratch'
         loss_function = soft_dice_cldice(mode=config.LOSS.SKEL_METHOD, alpha=config.LOSS.ALPHA)
+    if config.LOSS.USE_LOSS == 'ClDice':
+        if args.pretrained:
+            exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.SKEL_METHOD
+        else:
+            exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.SKEL_METHOD+'_scratch'
+        loss_function = soft_cldice(mode=config.LOSS.SKEL_METHOD)
 
     # Copy config files and verify if files exist
     exp_path = './models/'+dataconfig.DATA.DATASET+'/'+exp_name
