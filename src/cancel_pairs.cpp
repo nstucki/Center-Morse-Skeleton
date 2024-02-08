@@ -40,9 +40,9 @@ int main(int argc, char** argv) {
     string saveName = "result.json";
 	fileFormat format;
     value_t epsilon = 0;
-    index_t patchX = 1;
-    index_t patchY = 1;
-    index_t patchZ = 1;
+    index_t patchX = 10;
+    index_t patchY = 10;
+    index_t patchZ = 10;
     value_t threshold = INFTY;
     string orderDim = ">";
     string orderValue = ">";
@@ -114,23 +114,30 @@ int main(int argc, char** argv) {
         if (print) { cout << "Processing Lower Stars ..." << endl; }
         mc.processLowerStars(patchX, patchY, patchZ);
 
-        if (print) { cout << "Checking gradient vectorfield ... "; }
-        mc.checkV();
+        //if (print) { cout << "Checking gradient vectorfield ... "; }
+        //mc.checkV();
 
         if (print) {
             cout << endl << "Critical cells:" << endl;
-            mc.printNumberOfCriticalCells(threshold); cout << endl;
+            mc.printNumberOfCriticalCells(threshold); cout << endl << endl;
         }
-
-        mc.cancelPairs(threshold, orderDim, orderValue, orderDim, orderValue, print);
-
-        if (print) { cout << endl << "Checking gradient vectorfield ... "; }
-        mc.checkV();
 
         if (save) {
             if (print) { cout << "Saving result ..." << endl; }
             vector<vector<size_t>> numCriticalCells = mc.getNumberOfCriticalCells(threshold);
-            df.addRow(fileName, numCriticalCells);
+            df.addRow(fileName + " - before canceling", numCriticalCells);
+        }
+
+        mc.cancelPairsBelow(threshold, orderDim, orderValue, print);
+        mc.cancelPairsAbove(threshold, orderDim, orderValue, print);
+
+        //if (print) { cout << endl << "Checking gradient vectorfield ... "; }
+        //mc.checkV();
+
+        if (save) {
+            if (print) { cout << "Saving result ..." << endl; }
+            vector<vector<size_t>> numCriticalCells = mc.getNumberOfCriticalCells(threshold);
+            df.addRow(fileName + " - after canceling", numCriticalCells);
         }
     }
 

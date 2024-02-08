@@ -146,9 +146,10 @@ public:
 	void perturbImage(const value_t& epsilon=0);
 	void perturbImageMinimal();
 	void processLowerStars(const index_t& xPatch=1, const index_t& yPatch=1, const index_t& zPatch=1);
-	void cancelPairs(const value_t& threshold, string orderDimBelow=">", string orderValueBelow=">",
-						string orderDimAbove="<", string orderValueAbove="<", bool print=true);
+	void cancelPairsBelow(const value_t& threshold=INFTY, string orderDim=">", string orderValue=">", bool print=true);
+	void cancelPairsAbove(const value_t& threshold=INFTY, string orderDim=">", string orderValue=">", bool print=true);
 	void cancelLowPersistencePairsBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, bool print=true);
+	void cancelClosePairsBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, bool print=true);
 	void cancelBoundaryPairsBelow(const value_t& threshold=INFTY, const value_t& delta=0, bool print=true);
 	void prepareMorseSkeletonBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, const value_t& delta=-1, bool print=true);
 	void prepareMorseSkeletonTestBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, const value_t& delta=-1, bool print=true);
@@ -199,14 +200,6 @@ private:
 	void traverseCoflow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
 	void getConnections(const Cube&s, const Cube& t, vector<tuple<Cube, Cube, Cube>>& connections) const;
 	void cancelPair(const Cube&s, const Cube& t);
-	void cancelPairsDimDecreasingValueDecreasingBelow(const value_t& threshold=INFTY, bool print=true);
-	void cancelPairsDimDecreasingValueIncreasingBelow(const value_t& threshold=INFTY, bool print=true);
-	void cancelPairsDimIncreasingValueDecreasingBelow(const value_t& threshold=INFTY, bool print=true);
-	void cancelPairsDimIncreasingValueIncreasingBelow(const value_t& threshold=INFTY, bool print=true);
-	void cancelPairsDimDecreasingValueDecreasingAbove(const value_t& threshold=INFTY, bool print=true);
-	void cancelPairsDimDecreasingValueIncreasingAbove(const value_t& threshold=INFTY, bool print=true);
-	void cancelPairsDimIncreasingValueDecreasingAbove(const value_t& threshold=INFTY, bool print=true);
-	void cancelPairsDimIncreasingValueIncreasingAbove(const value_t& threshold=INFTY, bool print=true);
 	const vector<index_t> shape;
 	index_t mYZ = shape[1]*shape[2];
 	value_t*** grid;

@@ -284,37 +284,180 @@ void MorseComplex::processLowerStars(const index_t& xPatch, const index_t& yPatc
 }
 
 
-void MorseComplex::cancelPairs(const value_t& threshold, string orderDimBelow, string orderValueBelow, 
-								string orderDimAbove, string orderValueAbove, bool print) {
-	if (print) { cout << endl << "Canceling pairs < " << threshold << " ... " << endl; }
-	if (orderDimBelow == ">") {
-		if (orderValueBelow == ">") {
-			cancelPairsDimDecreasingValueDecreasingBelow(threshold, print);
-		} else if (orderValueBelow == "<") {
-			cancelPairsDimDecreasingValueIncreasingBelow(threshold, print);
-		}
-	} else if (orderDimBelow == "<") {
-		if (orderValueBelow == ">") {
-			cancelPairsDimIncreasingValueDecreasingBelow(threshold, print);
-		} else if (orderValueBelow == "<") {
-			cancelPairsDimIncreasingValueIncreasingBelow(threshold, print);
-		}
+void MorseComplex::cancelPairsBelow(const value_t& threshold, string orderDim, string orderValue, bool print) {
+	if (print) { 
+		cout << endl << "Canceling pairs < " << threshold << endl;
+		cout << "Canceling order:" << endl;
+        cout << "dimension: " << orderDim << endl;
+        cout << "value: " << orderValue << endl;
+		cout << endl;
+	
+		cout << "Critical cells:" << endl;
+		printNumberOfCriticalCells(threshold);
 	}
 
-	if (print) { cout << endl << "Canceling pairs >= " << threshold << " ... " << endl; }
-	if (orderDimAbove == ">") {
-		if (orderValueAbove == ">") {
-			cancelPairsDimDecreasingValueDecreasingAbove(threshold, print);
-		} else if (orderValueAbove == "<") {
-			cancelPairsDimDecreasingValueIncreasingAbove(threshold, print);
+	if (threshold == -INFTY) {
+		if (print) { cout << endl; }
+		return;
+	}
+
+	for (uint8_t dim = 0; dim < 4; ++dim) { sort(C[dim].begin(), C[dim].end()); }
+
+	vector<uint8_t> dimensions;
+	if (orderDim == ">") { dimensions = {3,2,1}; }
+	else if (orderDim == "<") { dimensions = {1,2,3}; }
+	else if (orderDim == "outer first >") { dimensions = {3,1,2}; }
+	else if (orderDim == "outer first <") { dimensions = {1,3,2}; }
+	else if (orderDim == "inner first >") { dimensions = {2,3,1}; }
+	else if (orderDim == "inner first <") { dimensions = {2,1,3}; }
+
+	bool canceled = true;
+	vector<Cube> cancelable;
+
+	if (orderValue == ">") {
+		while (canceled) {
+			canceled = false;
+			for (uint8_t dim : dimensions) {
+				for (auto it = C[dim].rbegin(); it != C[dim].rend(); ++it) {
+					Cube s = *it;
+
+					if (s.birth >= threshold) { continue; }
+
+					vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
+
+					cancelable.clear();
+					for (const pair<Cube, uint8_t> b : boundary) {
+						if (get<1>(b) == 1) { cancelable.push_back(get<0>(b)); }
+					}
+					if (cancelable.size() == 0) { continue; }
+					sort(cancelable.begin(), cancelable.end());
+
+					cancelPair(s, cancelable.back());
+					canceled = true;
+
+					if (print) { printNumberOfCriticalCells(threshold); }
+					break;
+				}
+				if (canceled) { break; }
+			}
 		}
-	} else if (orderDimAbove == "<") {
-		if (orderValueAbove == ">") {
-			cancelPairsDimIncreasingValueDecreasingAbove(threshold, print);
-		} else if (orderValueAbove == "<") {
-			cancelPairsDimIncreasingValueIncreasingAbove(threshold, print);
+	} 
+	else if (orderValue == "<") {
+		while (canceled) {
+			canceled = false;
+			for (uint8_t dim : dimensions) {
+				for (const Cube& s : C[dim]) {
+					if (s.birth >= threshold) { continue; }
+
+					vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
+
+					cancelable.clear();
+					for (const pair<Cube, uint8_t> b : boundary) {
+						if (get<1>(b) == 1) { cancelable.push_back(get<0>(b)); }
+					}
+					if (cancelable.size() == 0) { continue; }
+					sort(cancelable.begin(), cancelable.end());
+
+					cancelPair(s, cancelable.back());
+					canceled = true;
+
+					if (print) { printNumberOfCriticalCells(threshold); }
+					break;
+				}
+				if (canceled) { break; }
+			}
 		}
 	}
+	if (print) { cout << endl << endl; }
+}
+
+
+void MorseComplex::cancelPairsAbove(const value_t& threshold, string orderDim, string orderValue, bool print) {
+	if (print) {
+		cout << endl << "Canceling pairs >= " << threshold << endl;
+		cout << "Canceling order:" << endl;
+        cout << "dimension: " << orderDim << endl;
+        cout << "value: " << orderValue << endl;
+		cout << endl;
+
+		cout << "Critical cells:" << endl;
+		printNumberOfCriticalCells(threshold);
+	}
+
+	if (threshold == INFTY) {
+		if (print) { cout << endl; }
+		return;
+	}
+
+	for (uint8_t dim = 0; dim < 4; ++dim) { sort(C[dim].begin(), C[dim].end()); }
+
+	vector<uint8_t> dimensions;
+	if (orderDim == ">") { dimensions = {2,1,0}; }
+	else if (orderDim == "<") { dimensions = {0,1,2}; }
+	else if (orderDim == "outer first >") { dimensions = {2,0,1}; }
+	else if (orderDim == "outer first <") { dimensions = {0,2,1}; }
+	else if (orderDim == "inner first >") { dimensions = {1,2,0}; }
+	else if (orderDim == "inner first <") { dimensions = {1,0,2}; }
+
+	bool canceled = true;
+	vector<Cube> cancelable;
+
+	if (orderValue == ">") {
+		while (canceled) {
+			canceled = false;
+			for (uint8_t dim : dimensions) {
+				for (auto it = C[dim].rbegin(); it != C[dim].rend(); ++it) {
+					Cube t = *it;
+					
+					if (t.birth < threshold) { continue; }
+
+					vector<pair<Cube, uint8_t>> coboundary = getMorseCoboundary(t);
+
+					cancelable.clear();
+					for (const pair<Cube, uint8_t> c : coboundary) {
+						if (get<1>(c) == 1) { cancelable.push_back(get<0>(c)); }
+					}
+					if (cancelable.size() == 0) { continue; }
+					sort(cancelable.begin(), cancelable.end());
+
+					cancelPair(cancelable.front(), t);
+					canceled = true;
+
+					if (print) { printNumberOfCriticalCells(threshold); }
+					break;
+				}
+				if (canceled) { break; }
+			}
+		}
+		if (print) { cout << endl << endl; }
+	}
+	else if (orderValue == "<") {
+		while (canceled) {
+			canceled = false;
+			for (uint8_t dim : dimensions) {
+				for (const Cube& t : C[dim]) {
+					if (t.birth < threshold) { continue; }
+
+					vector<pair<Cube, uint8_t>> coboundary = getMorseCoboundary(t);
+
+					cancelable.clear();
+					for (const pair<Cube, uint8_t> c : coboundary) {
+						if (get<1>(c) == 1) { cancelable.push_back(get<0>(c)); }
+					}
+					if (cancelable.size() == 0) { continue; }
+					sort(cancelable.begin(), cancelable.end());
+
+					cancelPair(cancelable.front(), t);
+					canceled = true;
+
+					if (print) { printNumberOfCriticalCells(threshold); }
+					break;
+				}
+				if (canceled) { break; }
+			}
+		}
+		if (print) { cout << endl << endl; }
+	}	
 }
 
 
@@ -351,6 +494,77 @@ void MorseComplex::cancelLowPersistencePairsBelow(const value_t& threshold, cons
 				Cube t = cancelable.back();
 				if (s.birth - t.birth > epsilon) { continue; }
 
+				cancelPair(s, t);
+				canceled = true;
+
+				if (print) { printNumberOfCriticalCells(threshold); }
+				break;
+			}
+		}
+	}
+	if (print) { cout << endl; }
+}
+
+
+void MorseComplex::cancelClosePairsBelow(const value_t& threshold, const value_t& epsilon, bool print) {
+	if (print) {
+		cout << "Critical cells:" << endl;
+		printNumberOfCriticalCells(threshold);
+	}
+
+	if (threshold == -INFTY) {
+		if (print) { cout << endl; }
+		return;
+	}
+
+	vector<Cube> cancelable;
+	for (uint8_t dim = 4; dim-- > 1;) {
+		sort(C[dim].begin(), C[dim].end());
+
+		bool canceled = true;	
+		while (canceled) {
+			canceled = false;
+			for (auto it = C[dim].rbegin(); it != C[dim].rend(); ++it) {
+				Cube s = *it;
+				if (s.birth >= threshold) { continue; }
+
+				vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
+				cancelable.clear();
+				for (const pair<Cube, uint8_t> b : boundary) {
+					if (get<1>(b) == 1) { cancelable.push_back(get<0>(b)); }
+				}
+				if (cancelable.size() == 0) { continue; }
+
+				sort(cancelable.begin(), cancelable.end());
+				Cube t = cancelable.back();
+				if (s.birth - t.birth > epsilon) { continue; }
+
+				while (true) {
+					vector<pair<Cube, uint8_t>> coboundary = getMorseCoboundary(t);
+					cancelable.clear();
+					for (const pair<Cube, uint8_t> c : coboundary) {
+						if (get<1>(c) == 1) { cancelable.push_back(get<0>(c)); }
+					}
+					sort(cancelable.begin(), cancelable.end());
+
+					if (cancelable.front() < s) { 
+						s = cancelable.front();
+
+						vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
+						cancelable.clear();
+						for (const pair<Cube, uint8_t> b : boundary) {
+							if (get<1>(b) == 1) { cancelable.push_back(get<0>(b)); }
+						}
+
+						sort(cancelable.begin(), cancelable.end());
+
+						if (t < cancelable.back()) { t = cancelable.back(); }
+						else { break; }
+						
+					}
+					else { break; }
+				}
+				
 				cancelPair(s, t);
 				canceled = true;
 
@@ -1752,358 +1966,6 @@ void MorseComplex::cancelPair(const Cube&s, const Cube& t) {
 		V.emplace(get<1>(con), get<0>(con));
 		coV.emplace(get<0>(con), get<1>(con));
 	}
-}
-
-
-void MorseComplex::cancelPairsDimDecreasingValueDecreasingBelow(const value_t& threshold, bool print) {
-	if (print) {
-		cout << "Critical cells:" << endl;
-		printNumberOfCriticalCells(threshold);
-	}
-
-	if (threshold == -INFTY) {
-		if (print) { cout << endl; }
-		return;
-	}
-
-	for (uint8_t dim = 0; dim < 4; ++dim) { sort(C[dim].begin(), C[dim].end()); }
-
-	bool canceled = true;
-	vector<Cube> cancelable;
-	while (canceled) {
-		canceled = false;
-		for (uint8_t dim = 4; dim-- > 1;) {
-			for (auto it = C[dim].rbegin(); it != C[dim].rend(); ++it) {
-				Cube s = *it;
-
-				if (s.birth >= threshold) { continue; }
-
-				vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
-
-				cancelable.clear();
-				for (const pair<Cube, uint8_t> b : boundary) {
-					if (get<1>(b) == 1) { cancelable.push_back(get<0>(b)); }
-				}
-				if (cancelable.size() == 0) { continue; }
-				sort(cancelable.begin(), cancelable.end());
-
-				cancelPair(s, cancelable.back());
-				canceled = true;
-
-				if (print) { printNumberOfCriticalCells(threshold); }
-				break;
-			}
-			if (canceled) { break; }
-		}
-	}
-	if (print) { cout << endl; }
-}
-
-
-void MorseComplex::cancelPairsDimDecreasingValueIncreasingBelow(const value_t& threshold, bool print) {
-	if (print) {
-		cout << "Critical cells:" << endl;
-		printNumberOfCriticalCells(threshold);
-	}
-
-	if (threshold == -INFTY) {
-		if (print) { cout << endl; }
-		return;
-	}
-
-	for (uint8_t dim = 0; dim < 4; ++dim) { sort(C[dim].begin(), C[dim].end()); }
-
-	bool canceled = true;
-	vector<Cube> cancelable;
-	while (canceled) {
-		canceled = false;
-		for (uint8_t dim = 4; dim-- > 1;) {
-			for (const Cube& s : C[dim]) {
-				if (s.birth >= threshold) { continue; }
-
-				vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
-
-				cancelable.clear();
-				for (const pair<Cube, uint8_t> b : boundary) {
-					if (get<1>(b) == 1) { cancelable.push_back(get<0>(b)); }
-				}
-				if (cancelable.size() == 0) { continue; }
-				sort(cancelable.begin(), cancelable.end());
-
-				cancelPair(s, cancelable.back());
-				canceled = true;
-
-				if (print) { printNumberOfCriticalCells(threshold); }
-				break;
-			}
-			if (canceled) { break; }
-		}
-	}
-	if (print) { cout << endl; }
-}
-
-
-void MorseComplex::cancelPairsDimIncreasingValueDecreasingBelow(const value_t& threshold, bool print) {
-	if (print) {
-		cout << "Critical cells:" << endl;
-		printNumberOfCriticalCells(threshold);
-	}
-
-	if (threshold == -INFTY) {
-		if (print) { cout << endl; }
-		return;
-	}
-
-	for (uint8_t dim = 0; dim < 4; ++dim) { sort(C[dim].begin(), C[dim].end()); }
-
-	bool canceled = true;
-	vector<Cube> cancelable;
-	while (canceled) {
-		canceled = false;
-		for (uint8_t dim = 1; dim < 4; ++dim) {
-			for (auto it = C[dim].rbegin(); it != C[dim].rend(); ++it) {
-				Cube s = *it;
-
-				if (s.birth >= threshold) { continue; }
-
-				vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
-
-				cancelable.clear();
-				for (const pair<Cube, uint8_t> b : boundary) {
-					if (get<1>(b) == 1) { cancelable.push_back(get<0>(b)); }
-				}
-				if (cancelable.size() == 0) { continue; }
-				sort(cancelable.begin(), cancelable.end());
-
-				cancelPair(s, cancelable.back());
-				canceled = true;
-
-				if (print) { printNumberOfCriticalCells(threshold); }
-				break;
-			}
-			if (canceled) { break; }
-		}
-	}
-	if (print) { cout << endl; }
-}
-
-
-void MorseComplex::cancelPairsDimIncreasingValueIncreasingBelow(const value_t& threshold, bool print) {
-	if (print) {
-		cout << "Critical cells:" << endl;
-		printNumberOfCriticalCells(threshold);
-	}
-
-	if (threshold == -INFTY) {
-		if (print) { cout << endl; }
-		return;
-	}
-
-	for (uint8_t dim = 0; dim < 4; ++dim) { sort(C[dim].begin(), C[dim].end()); }
-
-	bool canceled = true;
-	vector<Cube> cancelable;
-	while (canceled) {
-		canceled = false;
-		for (uint8_t dim = 1; dim < 4; ++dim) {
-			for (const Cube& s : C[dim]) {
-				if (s.birth >= threshold) { continue; }
-
-				vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
-
-				cancelable.clear();
-				for (const pair<Cube, uint8_t> b : boundary) {
-					if (get<1>(b) == 1) { cancelable.push_back(get<0>(b)); }
-				}
-				if (cancelable.size() == 0) { continue; }
-				sort(cancelable.begin(), cancelable.end());
-
-				cancelPair(s, cancelable.back());
-				canceled = true;
-
-				if (print) { printNumberOfCriticalCells(threshold); }
-				break;
-			}
-			if (canceled) { break; }
-		}
-	}
-	if (print) { cout << endl; }
-}
-
-
-void MorseComplex::cancelPairsDimDecreasingValueDecreasingAbove(const value_t& threshold, bool print) {
-	if (print) {
-		cout << "Critical cells:" << endl;
-		printNumberOfCriticalCells(threshold);
-	}
-
-	if (threshold == INFTY) {
-		if (print) { cout << endl; }
-		return;
-	}
-
-	for (uint8_t dim = 0; dim < 4; ++dim) { sort(C[dim].begin(), C[dim].end()); }
-
-	bool canceled = true;
-	vector<Cube> cancelable;
-	while (canceled) {
-		canceled = false;
-		for (uint8_t dim = 3; dim-- > 0;) {
-			for (auto it = C[dim].rbegin(); it != C[dim].rend(); ++it) {
-				Cube t = *it;
-				
-				if (t.birth < threshold) { continue; }
-
-				vector<pair<Cube, uint8_t>> coboundary = getMorseCoboundary(t);
-
-				cancelable.clear();
-				for (const pair<Cube, uint8_t> c : coboundary) {
-					if (get<1>(c) == 1) { cancelable.push_back(get<0>(c)); }
-				}
-				if (cancelable.size() == 0) { continue; }
-				sort(cancelable.begin(), cancelable.end());
-
-				cancelPair(cancelable.front(), t);
-				canceled = true;
-
-				if (print) { printNumberOfCriticalCells(threshold); }
-				break;
-			}
-			if (canceled) { break; }
-		}
-	}
-	if (print) { cout << endl; }
-}
-
-
-void MorseComplex::cancelPairsDimDecreasingValueIncreasingAbove(const value_t& threshold, bool print) {
-	if (print) {
-		cout << "Critical cells:" << endl;
-		printNumberOfCriticalCells(threshold);
-	}
-
-	if (threshold == INFTY) {
-		if (print) { cout << endl; }
-		return;
-	}
-
-	for (uint8_t dim = 0; dim < 4; ++dim) { sort(C[dim].begin(), C[dim].end()); }
-
-	bool canceled = true;
-	vector<Cube> cancelable;
-	while (canceled) {
-		canceled = false;
-		for (uint8_t dim = 3; dim-- > 0;) {
-			for (const Cube& t : C[dim]) {
-				if (t.birth < threshold) { continue; }
-
-				vector<pair<Cube, uint8_t>> coboundary = getMorseCoboundary(t);
-
-				cancelable.clear();
-				for (const pair<Cube, uint8_t> c : coboundary) {
-					if (get<1>(c) == 1) { cancelable.push_back(get<0>(c)); }
-				}
-				if (cancelable.size() == 0) { continue; }
-				sort(cancelable.begin(), cancelable.end());
-
-				cancelPair(cancelable.front(), t);
-				canceled = true;
-
-				if (print) { printNumberOfCriticalCells(threshold); }
-				break;
-			}
-			if (canceled) { break; }
-		}
-	}
-	if (print) { cout << endl; }
-}
-
-
-void MorseComplex::cancelPairsDimIncreasingValueDecreasingAbove(const value_t& threshold, bool print) {
-	if (print) {
-		cout << "Critical cells:" << endl;
-		printNumberOfCriticalCells(threshold);
-	}
-
-	if (threshold == INFTY) {
-		if (print) { cout << endl; }
-		return;
-	}
-
-	for (uint8_t dim = 0; dim < 4; ++dim) { sort(C[dim].begin(), C[dim].end()); }
-
-	bool canceled = true;
-	vector<Cube> cancelable;
-	while (canceled) {
-		canceled = false;
-		for (uint8_t dim = 0; dim < 3; ++dim) {
-			for (auto it = C[dim].rbegin(); it != C[dim].rend(); ++it) {
-				Cube t = *it;
-
-				if (t.birth < threshold) { continue; }
-
-				vector<pair<Cube, uint8_t>> coboundary = getMorseCoboundary(t);
-
-				cancelable.clear();
-				for (const pair<Cube, uint8_t> c : coboundary) {
-					if (get<1>(c) == 1) { cancelable.push_back(get<0>(c)); }
-				}
-				if (cancelable.size() == 0) { continue; }
-				sort(cancelable.begin(), cancelable.end());
-
-				cancelPair(cancelable.front(), t);
-				canceled = true;
-
-				if (print) { printNumberOfCriticalCells(threshold); }
-				break;
-			}
-			if (canceled) { break; }
-		}
-	}
-	if (print) { cout << endl; }
-}
-
-
-void MorseComplex::cancelPairsDimIncreasingValueIncreasingAbove(const value_t& threshold, bool print) {
-	if (print) {
-		cout << "Critical cells:" << endl;
-		printNumberOfCriticalCells(threshold);
-	}
-
-	if (threshold == INFTY) {
-		if (print) { cout << endl; }
-		return;
-	}
-
-	for (uint8_t dim = 0; dim < 4; ++dim) { sort(C[dim].begin(), C[dim].end()); }
-
-	bool canceled = true;
-	vector<Cube> cancelable;
-	while (canceled) {
-		canceled = false;
-		for (uint8_t dim = 0; dim < 3; ++dim) {
-			for (const Cube& t : C[dim]) {
-				if (t.birth < threshold) { continue; }
-
-				vector<pair<Cube, uint8_t>> coboundary = getMorseCoboundary(t);
-
-				cancelable.clear();
-				for (const pair<Cube, uint8_t> c : coboundary) {
-					if (get<1>(c) == 1) { cancelable.push_back(get<0>(c)); }
-				}
-				if (cancelable.size() == 0) { continue; }
-				sort(cancelable.begin(), cancelable.end());
-
-				cancelPair(cancelable.front(), t);
-				canceled = true;
-
-				if (print) { printNumberOfCriticalCells(threshold); }
-				break;
-			}
-			if (canceled) { break; }
-		}
-	}
-	if (print) { cout << endl; }
 }
 
 

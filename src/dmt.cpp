@@ -40,12 +40,17 @@ PYBIND11_MODULE(morse_complex, m) {
 
         .def("get_morse_coboundary", &MorseComplex::getMorseCoboundary, py::arg("cube"))
 
-        .def("cancel_pairs", &MorseComplex::cancelPairs, py::arg("threshold")=INFTY, py::arg("order_dim_below")=">", 
-                                                            py::arg("order_value_below")=">", py::arg("order_dim_above")="<",
-                                                            py::arg("order_value_above")="<", py::arg("print")=true)
+        .def("cancel_pairs_below", &MorseComplex::cancelPairsBelow, py::arg("threshold")=INFTY, py::arg("order_dim")=">", 
+                                                                    py::arg("order_value")=">", py::arg("print")=true)
+
+        .def("cancel_pairs_above", &MorseComplex::cancelPairsAbove, py::arg("threshold")=INFTY, py::arg("order_dim")=">", 
+                                                                    py::arg("order_value")=">", py::arg("print")=true)
 
         .def("cancel_low_persistence_pairs_below", &MorseComplex::cancelLowPersistencePairsBelow, py::arg("threshold")=INFTY, py::arg("delta")=0,
                                                                                                     py::arg("print")=true)
+
+        .def("cancel_close_pairs_below", &MorseComplex::cancelClosePairsBelow, py::arg("threshold")=INFTY, py::arg("delta")=0,
+                                                                                py::arg("print")=true)
 
         .def("cancel_boundary_pairs_below", &MorseComplex::cancelBoundaryPairsBelow, py::arg("threshold")=INFTY, py::arg("delta")=0,
                                                                                         py::arg("print")=true)
