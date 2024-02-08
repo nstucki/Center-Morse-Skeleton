@@ -31,8 +31,7 @@ from monai.transforms import (
 )
 from monai.visualize import plot_2d_or_3d_image
 
-from loss_functions import *
-from metrics.ClDice.cldice_loss.pytorch.cldice import soft_dice_cldice
+from cldice_loss.cldice import soft_cldice, soft_dice_cldice
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -169,42 +168,19 @@ def main(args):
             exp_name = config.LOSS.USE_LOSS
         else:
             exp_name = config.LOSS.USE_LOSS + '_scratch'
-        loss_function = monai.losses.DiceLoss(sigmoid=True)
-    if config.LOSS.USE_LOSS  == 'BettiMatching':
+        loss_function = monai.losses.DiceLoss(sigmoid=False)
+    if config.LOSS.USE_LOSS == 'Dice_ClDice':
         if args.pretrained:
-            exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.FILTRATION+'_relative_'+str(config.LOSS.RELATIVE)+'_alpha_'+str(config.LOSS.ALPHA)
+            exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.SKEL_METHOD+'_alpha_'+str(config.LOSS.ALPHA)
         else:
-            exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.FILTRATION+'_relative_'+str(config.LOSS.RELATIVE)+'_alpha_'+str(config.LOSS.ALPHA)+'_scratch'
-        loss_function = BettiMatchingLoss(relative=config.LOSS.RELATIVE,
-                                          filtration=config.LOSS.FILTRATION)
-    if config.LOSS.USE_LOSS  == 'DiceBettiMatching':
-        if args.pretrained:
-            exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.FILTRATION+'_relative_'+str(config.LOSS.RELATIVE)+'_alpha_'+str(config.LOSS.ALPHA)
-        else:
-            exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.FILTRATION+'_relative_'+str(config.LOSS.RELATIVE)+'_alpha_'+str(config.LOSS.ALPHA)+'_scratch'
-        loss_function = DiceBettiMatchingLoss(alpha=config.LOSS.ALPHA,
-                                              relative=config.LOSS.RELATIVE,
-                                              filtration=config.LOSS.FILTRATION)
-    if config.LOSS.USE_LOSS  == 'HuTopo':
-        if args.pretrained:
-            exp_name = config.LOSS.USE_LOSS+'_dimensions_'+str(config.LOSS.DIMENSIONS)+'_alpha_'+str(config.LOSS.ALPHA)
-        else:
-            exp_name = config.LOSS.USE_LOSS+'_dimensions_'+str(config.LOSS.DIMENSIONS)+'_alpha_'+str(config.LOSS.ALPHA)+'_scratch'
-        loss_function = DiceWassersteinLoss(alpha=config.LOSS.ALPHA,
-                                       dimensions=config.LOSS.DIMENSIONS)
+            exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.SKEL_METHOD+'_alpha_'+str(config.LOSS.ALPHA)+'_scratch'
+        loss_function = soft_dice_cldice(mode=config.LOSS.SKEL_METHOD, alpha=config.LOSS.ALPHA)
     if config.LOSS.USE_LOSS == 'ClDice':
         if args.pretrained:
-            exp_name = config.LOSS.USE_LOSS+'_alpha_'+str(config.LOSS.ALPHA)
+            exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.SKEL_METHOD
         else:
-            exp_name = config.LOSS.USE_LOSS+'_alpha_'+str(config.LOSS.ALPHA)+'_scratch'
-        loss_function = soft_dice_cldice(alpha=config.LOSS.ALPHA)
-    if config.LOSS.USE_LOSS  == 'ComposedHuTopo':
-        if args.pretrained:
-            exp_name = config.LOSS.USE_LOSS+'_dimensions_'+str(config.LOSS.DIMENSIONS)+'_alpha_'+str(config.LOSS.ALPHA)
-        else:
-            exp_name = config.LOSS.USE_LOSS+'_dimensions_'+str(config.LOSS.DIMENSIONS)+'_alpha_'+str(config.LOSS.ALPHA)+'_scratch'
-        loss_function = DiceComposedWassersteinLoss(alpha=config.LOSS.ALPHA,
-                                       dimensions=config.LOSS.DIMENSIONS)
+            exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.SKEL_METHOD+'_scratch'
+        loss_function = soft_cldice(mode=config.LOSS.SKEL_METHOD)
 
     # Copy config files and verify if files exist
     exp_path = './models/'+dataconfig.DATA.DATASET+'/'+exp_name
@@ -262,6 +238,7 @@ def main(args):
             elif dataconfig.DATA.IN_CHANNELS == 3:
                 outputs = model(torch.squeeze(inputs).permute(0,3,1,2))
             #print(outputs.size())
+            outputs = torch.sigmoid(outputs)
             if config.LOSS.USE_LOSS == 'Dice':
                 loss = loss_function(outputs, labels)
             else:
