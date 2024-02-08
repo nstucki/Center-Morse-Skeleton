@@ -2,8 +2,6 @@ import numpy as np
 from scipy.ndimage import distance_transform_edt
 import plotly.graph_objects as go
 import sys
-sys.path.append("build")
-import morse_complex as mc
 
 def distance_transform(image):
     distance_f = np.copy(image)
