@@ -5,8 +5,7 @@ import os
 import sys
 sys.path.append("../previous_skeleton")
 from previous_skeleton import MentenSkeletonize, ShitSkeletonize, VitiSkeletonize
-from build import morse_complex as mc
-# from utils.functions import *
+from morse_skeleton import DMTSkeletonize
 
 
 class soft_cldice(nn.Module):
@@ -15,7 +14,7 @@ class soft_cldice(nn.Module):
         self.iter = iter_
         self.smooth = smooth
         if mode == 'DMT':
-            self.skeletonization_module = mc.DMTSkeletonize(num_iter=10)
+            self.skeletonization_module = DMTSkeletonize(reparameterize='fixed')
         if mode == 'Menten': 
             self.skeletonization_module = MentenSkeletonize(num_iter=10)
         if mode == 'Viti':
@@ -26,8 +25,8 @@ class soft_cldice(nn.Module):
     def forward(self, y_true, y_pred):
         skel_pred = self.skeletonization_module(y_pred)
         skel_true = self.skeletonization_module(y_true)
-        tprec = (torch.sum(torch.multiply(skel_pred, y_true)[:,1:,...])+self.smooth)/(torch.sum(skel_pred[:,1:,...])+self.smooth)    
-        tsens = (torch.sum(torch.multiply(skel_true, y_pred)[:,1:,...])+self.smooth)/(torch.sum(skel_true[:,1:,...])+self.smooth)    
+        tprec = (torch.sum(torch.multiply(skel_pred, y_true))+self.smooth)/(torch.sum(skel_pred)+self.smooth)    
+        tsens = (torch.sum(torch.multiply(skel_true, y_pred))+self.smooth)/(torch.sum(skel_true)+self.smooth)    
         cl_dice = 1.- 2.0*(tprec*tsens)/(tprec+tsens)
         return cl_dice, {}
 
@@ -55,7 +54,7 @@ class soft_dice_cldice(nn.Module):
         self.smooth = smooth
         self.alpha = alpha
         if mode == 'DMT':
-            self.skeletonization_module = mc.DMTSkeletonize(num_iter=10)
+            self.skeletonization_module = DMTSkeletonize(reparameterize='fixed')
         if mode == 'Menten': 
             self.skeletonization_module = MentenSkeletonize(num_iter=10)
         if mode == 'Viti':

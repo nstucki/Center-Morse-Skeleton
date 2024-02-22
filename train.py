@@ -2,6 +2,7 @@ import logging
 import os
 import yaml
 import sys
+import shutil
 import random
 import numpy as np
 import json
@@ -51,6 +52,7 @@ parser.add_argument('--dataconfig',
                     help='data config file (.yaml) containing the dataset specific information.')
 parser.add_argument('--pretrained', default=None, help='checkpoint of the pretrained model')
 parser.add_argument('--resume', default=None, help='checkpoint of the last epoch of the model')
+parser.add_argument('--overwrite', action='store_true', help='overwrite the experiment folder')
 parser.add_argument('--cuda_visible_device', nargs='*', type=int, default=[0],
                         help='list of index where skip conn will be made')
 
@@ -183,9 +185,20 @@ def main(args):
         loss_function = soft_cldice(mode=config.LOSS.SKEL_METHOD)
 
     # Copy config files and verify if files exist
-    exp_path = './models/'+dataconfig.DATA.DATASET+'/'+exp_name
-    if os.path.exists(exp_path) and args.resume == None:
-        raise Exception('ERROR: Experiment folder exist, please delete folder or check config file')
+    exp_path = './runs/'+dataconfig.DATA.DATASET+'/'+exp_name
+    if os.path.exists(exp_path) and args.overwrite:
+        # remove the folder and create a new one
+        print('WARNING: Overwriting the experiment folder!')
+        print('Path:', exp_path)
+        # ask for confirmation from user via terminal
+        response = input('Do you want to continue? (y/n): ')
+        if response.lower() != 'y':
+            print('Exiting...')
+            sys.exit()
+        shutil.rmtree(exp_path)
+        os.makedirs(exp_path)
+    elif os.path.exists(exp_path) and args.resume == None:
+        raise Exception('ERROR: Experiment folder exist, please delete or use flag --overwrite')
     else:
         try:
             os.makedirs(exp_path)
