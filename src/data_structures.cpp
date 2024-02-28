@@ -834,32 +834,35 @@ void MorseComplex::extractMorseSkeletonInDimBelow(const uint8_t& dim, const valu
 }
 
 
-void MorseComplex::prepareAndExtractMorseSkeletonBelow(const value_t& threshold, const value_t& epsilon, bool print) {
-	if (print) {
-		cout << "Critical cells:" << endl;
-		printNumberOfCriticalCells(threshold);
-	}
-
+void MorseComplex::prepareAndExtractMorseSkeletonBelow(const value_t& threshold, const value_t& epsilon, const vector<uint8_t>& dimensions) {
 	morseSkeletonBelow.clear();
 	morseSkeletonVoxelsBelow.clear();
 
 	vector<std::future<void>> futures;
-	futures.push_back(async(launch::async, &MorseComplex::cancelLowPersistencePairsInDimBelow,
-							this, 3, threshold, epsilon, false));
-	futures.push_back(async(launch::async, &MorseComplex::cancelLowPersistencePairsInDimBelow,
-							this, 1, threshold, epsilon, false));
+	if(find(dimensions.begin(), dimensions.end(), 3) != dimensions.end()) {
+		futures.push_back(async(launch::async, &MorseComplex::cancelLowPersistencePairsInDimBelow,
+								this, 3, threshold, epsilon, false));
+	}
+	if(find(dimensions.begin(), dimensions.end(), 1) != dimensions.end()) {
+		futures.push_back(async(launch::async, &MorseComplex::cancelLowPersistencePairsInDimBelow,
+								this, 1, threshold, epsilon, false));
+	}
 	for (auto& future : futures) {
         future.wait();
     }
 
 	futures.clear();
-	futures.push_back(async(launch::async, &MorseComplex::cancelLowPersistencePairsInDimBelow,
-							this, 2, threshold, epsilon, false));
+	if(find(dimensions.begin(), dimensions.end(), 2) != dimensions.end()) {
+		futures.push_back(async(launch::async, &MorseComplex::cancelLowPersistencePairsInDimBelow,
+								this, 2, threshold, epsilon, false));
+	}
 	futures.push_back(async(launch::async, &MorseComplex::extractMorseSkeletonInDimBelow,
 								this, 3, threshold));
 	futures.push_back(async(launch::async, &MorseComplex::extractMorseSkeletonInDimBelow,
 								this, 0, threshold));
-	futures[0].wait();
+	if(find(dimensions.begin(), dimensions.end(), 2) != dimensions.end()) {
+		futures[0].wait();
+	}
 
 	futures.push_back(async(launch::async, &MorseComplex::extractMorseSkeletonInDimBelow,
 								this, 1, threshold));
@@ -875,11 +878,6 @@ void MorseComplex::prepareAndExtractMorseSkeletonBelow(const value_t& threshold,
 		for (const vector<index_t>& p : pixels) {
 			morseSkeletonVoxelsBelow.insert(p);
 		}
-	}
-
-	if (print) {
-		cout << "Critical cells:" << endl;
-		printNumberOfCriticalCells(threshold);
 	}
 }
 
