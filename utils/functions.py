@@ -76,7 +76,7 @@ def plot_morse_skeleton(MC, image=np.zeros((0)), threshold=0, plot_below=True, p
     fig.show()
 
 
-def plot_critical_cells(MC, image=np.zeros((0)), threshold=0, plot_below=True, plot_above=False):
+def plot_critical_cells(MC, image=np.zeros((0)), threshold=0, dimensions=[0,1,2,3], plot_below=True, plot_above=False):
     if image.shape != (0):
         skeleton = np.copy(image)
     
@@ -116,14 +116,22 @@ def plot_critical_cells(MC, image=np.zeros((0)), threshold=0, plot_below=True, p
     if image.shape != (0):
         fig.add_trace(go.Scatter3d(x=x_0, y=y_0, z=z_0, opacity=0.25, mode='markers', marker=dict(size=2, color='blue'), name='voxels below'))
     if plot_below:
-        fig.add_trace(go.Scatter3d(x=x_2, y=y_2, z=z_2, mode='markers', marker=dict(size=2, color='green'), name='0-critical'))
-        fig.add_trace(go.Scatter3d(x=x_3, y=y_3, z=z_3, mode='markers', marker=dict(size=2, color='yellow'), name='1-critical'))
-        fig.add_trace(go.Scatter3d(x=x_4, y=y_4, z=z_4, mode='markers', marker=dict(size=2, color='orange'), name='2-critical'))
-        fig.add_trace(go.Scatter3d(x=x_5, y=y_5, z=z_5, mode='markers', marker=dict(size=2, color='red'), name='3-critical'))
+        if 0 in dimensions:
+            fig.add_trace(go.Scatter3d(x=x_2, y=y_2, z=z_2, mode='markers', marker=dict(size=2, color='green'), name='0-critical'))
+        if 1 in dimensions:
+            fig.add_trace(go.Scatter3d(x=x_3, y=y_3, z=z_3, mode='markers', marker=dict(size=2, color='yellow'), name='1-critical'))
+        if 2 in dimensions:
+            fig.add_trace(go.Scatter3d(x=x_4, y=y_4, z=z_4, mode='markers', marker=dict(size=2, color='orange'), name='2-critical'))
+        if 3 in dimensions:
+            fig.add_trace(go.Scatter3d(x=x_5, y=y_5, z=z_5, mode='markers', marker=dict(size=2, color='red'), name='3-critical'))
     if plot_above:
-        fig.add_trace(go.Scatter3d(x=x_6, y=y_6, z=z_6, mode='markers', marker=dict(size=2, color='green'), name='0-critical'))
-        fig.add_trace(go.Scatter3d(x=x_7, y=y_7, z=z_7, mode='markers', marker=dict(size=2, color='yellow'), name='1-critical'))
-        fig.add_trace(go.Scatter3d(x=x_8, y=y_8, z=z_8, mode='markers', marker=dict(size=2, color='orange'), name='2-critical'))
-        fig.add_trace(go.Scatter3d(x=x_9, y=y_9, z=z_9, mode='markers', marker=dict(size=2, color='red'), name='3-critical'))
+        if 0 in dimensions:
+            fig.add_trace(go.Scatter3d(x=x_6, y=y_6, z=z_6, mode='markers', marker=dict(size=2, color='green'), name='0-critical'))
+        if 1 in dimensions:
+            fig.add_trace(go.Scatter3d(x=x_7, y=y_7, z=z_7, mode='markers', marker=dict(size=2, color='yellow'), name='1-critical'))
+        if 2 in dimensions:
+            fig.add_trace(go.Scatter3d(x=x_8, y=y_8, z=z_8, mode='markers', marker=dict(size=2, color='orange'), name='2-critical'))
+        if 3 in dimensions:
+            fig.add_trace(go.Scatter3d(x=x_9, y=y_9, z=z_9, mode='markers', marker=dict(size=2, color='red'), name='3-critical'))
     fig.update_layout(scene=dict(aspectratio=dict(x=1, y=1, z=1), aspectmode='manual'))
     fig.show()

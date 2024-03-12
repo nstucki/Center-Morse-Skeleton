@@ -306,10 +306,8 @@ void MorseComplex::cancelPairsBelow(const value_t& threshold, string orderDim, s
 	vector<uint8_t> dimensions;
 	if (orderDim == ">") { dimensions = {3,2,1}; }
 	else if (orderDim == "<") { dimensions = {1,2,3}; }
-	else if (orderDim == "outer first >") { dimensions = {3,1,2}; }
-	else if (orderDim == "outer first <") { dimensions = {1,3,2}; }
-	else if (orderDim == "inner first >") { dimensions = {2,3,1}; }
-	else if (orderDim == "inner first <") { dimensions = {2,1,3}; }
+	else if (orderDim == "><") { dimensions = {3,1,2}; }
+	else if (orderDim == "<>") { dimensions = {2,3,1}; }
 
 	bool canceled = true;
 	vector<Cube> cancelable;
@@ -394,10 +392,8 @@ void MorseComplex::cancelPairsAbove(const value_t& threshold, string orderDim, s
 	vector<uint8_t> dimensions;
 	if (orderDim == ">") { dimensions = {2,1,0}; }
 	else if (orderDim == "<") { dimensions = {0,1,2}; }
-	else if (orderDim == "outer first >") { dimensions = {2,0,1}; }
-	else if (orderDim == "outer first <") { dimensions = {0,2,1}; }
-	else if (orderDim == "inner first >") { dimensions = {1,2,0}; }
-	else if (orderDim == "inner first <") { dimensions = {1,0,2}; }
+	else if (orderDim == "><") { dimensions = {3,1,2}; }
+	else if (orderDim == "<>") { dimensions = {2,3,1}; }
 
 	bool canceled = true;
 	vector<Cube> cancelable;
@@ -792,12 +788,12 @@ void MorseComplex::prepareMorseSkeletonAbove(const value_t& threshold, const val
 }
 
 
-void MorseComplex::extractMorseSkeletonBelow(const value_t& threshold) {
+void MorseComplex::extractMorseSkeletonBelow(const value_t& threshold, const uint8_t& dimension) {
 	morseSkeletonBelow.clear();
 	morseSkeletonVoxelsBelow.clear();
 	
 	vector<tuple<Cube, Cube, Cube>> flow;
-	for (uint8_t dim = 0; dim < 4; ++dim) {
+	for (uint8_t dim = 0; dim < dimension+1; ++dim) {
 		for (const Cube& c : C[dim]) {
 			if (c.birth >= threshold) { continue; }
 			morseSkeletonBelow.insert(c);
