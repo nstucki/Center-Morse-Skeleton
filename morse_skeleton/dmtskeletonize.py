@@ -44,9 +44,9 @@ class DMTSkeletonize(torch.nn.Module):
 
         # TODO: For now filtering is disabled
         # MC.prepare_morse_skeleton_below(threshold=self.threshold, epsilon=self.epsilon, delta=self.delta)
-        MC.extract_morse_skeleton_below(threshold=self.threshold)
+        MC.extract_morse_skeleton_below(threshold=self.threshold, dimension=3)
 
-        pixels_below = MC.get_morse_skeleton_below()
+        pixels_below = np.array(MC.get_morse_skeleton_below())
         
         skeleton = np.zeros_like(img)
         skeleton[pixels_below[:,0], pixels_below[:,1], pixels_below[:,2]] = 1
