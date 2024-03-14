@@ -46,10 +46,10 @@ class DMTSkeletonize(torch.nn.Module):
         # MC.prepare_morse_skeleton_below(threshold=self.threshold, epsilon=self.epsilon, delta=self.delta)
         MC.extract_morse_skeleton_below(threshold=self.threshold)
 
-        skeleton_pixels_below = MC.get_morse_skeleton_below()
+        pixels_below = MC.get_morse_skeleton_below()
+        
         skeleton = np.zeros_like(img)
-        for pixel in skeleton_pixels_below:
-            skeleton[pixel[0], pixel[1], pixel[2]] = 1
+        skeleton[pixels_below[:,0], pixels_below[:,1], pixels_below[:,2]] = 1
 
         return skeleton
 

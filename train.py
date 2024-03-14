@@ -11,9 +11,11 @@ os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 import sys
 from shutil import copyfile
 from glob import glob
+
 import torch
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
+import wandb
+
 import monai
 from monai.data import list_data_collate, decollate_batch
 from monai.inferers import sliding_window_inference
@@ -40,9 +42,6 @@ from tqdm import tqdm
 
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
-# from topoloss_pytorch import HuTopoLoss
-
-
 parser = ArgumentParser()
 parser.add_argument('--config',
                     default=None,
@@ -55,6 +54,7 @@ parser.add_argument('--resume', default=None, help='checkpoint of the last epoch
 parser.add_argument('--overwrite', action='store_true', help='overwrite the experiment folder')
 parser.add_argument('--cuda_visible_device', nargs='*', type=int, default=[0],
                         help='list of index where skip conn will be made')
+parser.add_argument('--logging', action='store_true')
 
 class obj:
     def __init__(self, dict1):
@@ -64,7 +64,6 @@ def dict2obj(dict1):
     return json.loads(json.dumps(dict1), object_hook=obj)
 
 def main(args):
-# def main(tempdir, max_epoch=100, use_loss=None, alpha=None, pretrained=None, resume=None, name=None):
     # Load the config files
     with open(args.config) as f:
         print('\n*** Config file')
@@ -86,6 +85,54 @@ def main(args):
     if args.resume and args.pretrained:
         raise Exception('Do not use pretrained and resume at the same time.')
     
+    # Loss function choice
+    if config.LOSS.USE_LOSS == 'Dice':
+        if args.pretrained:
+            exp_name = config.LOSS.USE_LOSS
+        else:
+            exp_name = config.LOSS.USE_LOSS + '_scratch'
+        loss_function = monai.losses.DiceLoss(sigmoid=False)
+    if config.LOSS.USE_LOSS == 'Dice_ClDice':
+        if args.pretrained:
+            exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.SKEL_METHOD+'_alpha_'+str(config.LOSS.ALPHA)
+        else:
+            exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.SKEL_METHOD+'_alpha_'+str(config.LOSS.ALPHA)+'_scratch'
+        loss_function = soft_dice_cldice(mode=config.LOSS.SKEL_METHOD, alpha=config.LOSS.ALPHA)
+    if config.LOSS.USE_LOSS == 'ClDice':
+        if args.pretrained:
+            exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.SKEL_METHOD
+        else:
+            exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.SKEL_METHOD+'_scratch'
+        loss_function = soft_cldice(mode=config.LOSS.SKEL_METHOD)
+
+    # Copy config files and verify if files exist
+    exp_path = './runs/'+dataconfig.DATA.DATASET+'/'+exp_name
+    if os.path.exists(exp_path) and args.overwrite:
+        # remove the folder and create a new one
+        print('WARNING: Overwriting the experiment folder!')
+        print('Path:', exp_path)
+        # ask for confirmation from user via terminal
+        response = input('Do you want to continue? (y/n): ')
+        if response.lower() != 'y':
+            print('Exiting...')
+            sys.exit()
+        shutil.rmtree(exp_path)
+        os.makedirs(exp_path)
+    elif os.path.exists(exp_path) and args.resume == None:
+        raise Exception('ERROR: Experiment folder exist, please delete or use flag --overwrite')
+    else:
+        try:
+            os.makedirs(exp_path)
+            copyfile(args.config, os.path.join(exp_path, "config.yaml"))
+        except:
+            pass
+    
+    # initialize wandb
+    if args.logging:
+        wandb.login()
+        wandb.init(project="DMT-skeleton", name=dataconfig.DATA.DATASET+'_'+exp_name, resume="allow")
+        wandb.config.update(config)
+        wandb.config.update(dataconfig)
 
     # monai.config.print_config()
     # logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -163,48 +210,6 @@ def main(args):
         strides=config.MODEL.STRIDES,
         num_res_units=config.MODEL.NUM_RES_UNITS,
     ).to(device)
-    
-    # Loss function choice
-    if config.LOSS.USE_LOSS == 'Dice':
-        if args.pretrained:
-            exp_name = config.LOSS.USE_LOSS
-        else:
-            exp_name = config.LOSS.USE_LOSS + '_scratch'
-        loss_function = monai.losses.DiceLoss(sigmoid=False)
-    if config.LOSS.USE_LOSS == 'Dice_ClDice':
-        if args.pretrained:
-            exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.SKEL_METHOD+'_alpha_'+str(config.LOSS.ALPHA)
-        else:
-            exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.SKEL_METHOD+'_alpha_'+str(config.LOSS.ALPHA)+'_scratch'
-        loss_function = soft_dice_cldice(mode=config.LOSS.SKEL_METHOD, alpha=config.LOSS.ALPHA)
-    if config.LOSS.USE_LOSS == 'ClDice':
-        if args.pretrained:
-            exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.SKEL_METHOD
-        else:
-            exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.SKEL_METHOD+'_scratch'
-        loss_function = soft_cldice(mode=config.LOSS.SKEL_METHOD)
-
-    # Copy config files and verify if files exist
-    exp_path = './runs/'+dataconfig.DATA.DATASET+'/'+exp_name
-    if os.path.exists(exp_path) and args.overwrite:
-        # remove the folder and create a new one
-        print('WARNING: Overwriting the experiment folder!')
-        print('Path:', exp_path)
-        # ask for confirmation from user via terminal
-        response = input('Do you want to continue? (y/n): ')
-        if response.lower() != 'y':
-            print('Exiting...')
-            sys.exit()
-        shutil.rmtree(exp_path)
-        os.makedirs(exp_path)
-    elif os.path.exists(exp_path) and args.resume == None:
-        raise Exception('ERROR: Experiment folder exist, please delete or use flag --overwrite')
-    else:
-        try:
-            os.makedirs(exp_path)
-            copyfile(args.config, os.path.join(exp_path, "config.yaml"))
-        except:
-            pass
         
     optimizer = torch.optim.Adam(model.parameters(), config.TRAIN.LR)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1000000, gamma=0.1)   #always check that the step size is high enough
@@ -222,7 +227,6 @@ def main(args):
     if args.pretrained:
         dic = torch.load(args.pretrained)
         model.load_state_dict(dic['model'])
-
         
     # start a typical PyTorch training
     best_metric = -1
@@ -231,26 +235,24 @@ def main(args):
     #best_betti_distance_epoch = -1
     epoch_loss_values = list()
     metric_values = list()
-    writer = SummaryWriter('./runs/'+dataconfig.DATA.DATASET+'/'+exp_name)
+
     for epoch in tqdm(range(last_epoch, config.TRAIN.MAX_EPOCHS)):
         #print("-" * 10)
         #print(f"epoch {epoch + 1}/{max_epoch}")
         model.train()
         epoch_loss = 0
-        step = 0
-        for batch_data in tqdm(train_loader):
-            step += 1
+
+        wandb_epoch_dict = {}
+        for iter_, batch_data in tqdm(enumerate(train_loader)):
             inputs, labels = batch_data["img"].to(device), batch_data["seg"].to(device)
             optimizer.zero_grad()
-            #print('input')
-            #print(inputs.size())
-            #print(torch.squeeze(inputs).permute(0,3,1,2).size())
-            #print(labels.size())
+            wandb_batch_dict = {}
+
             if dataconfig.DATA.IN_CHANNELS == 1:
                 outputs = model(inputs)
             elif dataconfig.DATA.IN_CHANNELS == 3:
                 outputs = model(torch.squeeze(inputs).permute(0,3,1,2))
-            #print(outputs.size())
+
             outputs = torch.sigmoid(outputs)
             if config.LOSS.USE_LOSS == 'Dice':
                 loss = loss_function(outputs, labels)
@@ -261,17 +263,19 @@ def main(args):
             scheduler.step()
             epoch_loss += loss.item()
             epoch_len = len(train_ds) // train_loader.batch_size
-            #print(f"{step}/{epoch_len}, train_loss: {loss.item():.4f}")
-            if step % config.TRAIN.LOG_INTERVAL == 0:
-                writer.add_scalar('train_loss', loss.item(), epoch_len * epoch + step)
-                if config.LOSS.USE_LOSS == 'Dice':
-                    writer.add_scalar('dice', loss.item(), epoch_len * epoch + step)
-                else:
-                    for key, val in dic.items():
-                        writer.add_scalar(key, val.item(), epoch_len * epoch + step)
-        epoch_loss /= step
+
+            if args.logging:
+                if (iter_+1) % config.TRAIN.LOG_INTERVAL == 0:
+                    wandb_batch_dict.update({'train_loss': loss.item()})
+                    if config.LOSS.USE_LOSS == 'Dice':
+                        wandb_batch_dict.update({'dice_loss': loss.item()})
+                    else:
+                        for key, val in dic.items():
+                            wandb_batch_dict.update({key: val.item()})
+                wandb.log(wandb_batch_dict)
+
+        epoch_loss /= len(train_loader)
         epoch_loss_values.append(epoch_loss)
-        #print(f"epoch {epoch + 1} average loss: {epoch_loss:.4f}")
 
         if (epoch + 1) % config.TRAIN.VAL_INTERVAL == 0:
             model.eval()
@@ -279,6 +283,7 @@ def main(args):
                 val_images = None
                 val_labels = None
                 val_outputs = None
+
                 #betti_distances = []
                 for val_data in val_loader:
                     val_images, val_labels = val_data["img"].to(device), val_data["seg"].to(device)
@@ -288,9 +293,11 @@ def main(args):
                         val_outputs = sliding_window_inference(val_images, roi_size, sw_batch_size, model)
                     elif dataconfig.DATA.IN_CHANNELS == 3:
                         val_outputs = sliding_window_inference(torch.squeeze(val_images).permute(0,3,1,2), roi_size, sw_batch_size, model)
-                    val_outputs = [post_trans(i) for i in decollate_batch(val_outputs)]
+                    # val_outputs = [post_trans(i) for i in decollate_batch(val_outputs)]
+                    val_outputs_bin = post_trans(val_outputs)
                     # compute metric for current iteration
-                    dice_metric(y_pred=val_outputs, y=val_labels)
+                    dice_metric(y_pred=val_outputs_bin, y=val_labels)
+
                     #for pair in zip(val_outputs,val_labels):
                     #    betti_distances.append(compute_Betti_distance(pair))
                 #betti_distance = torch.mean(torch.stack(betti_distances).float())
@@ -303,13 +310,13 @@ def main(args):
                 dic['model'] = model.state_dict()
                 dic['optimizer'] = optimizer.state_dict()
                 dic['scheduler'] = scheduler.state_dict()
-                torch.save(dic, './models/'+dataconfig.DATA.DATASET+'/'+exp_name+'/last_model_dict.pth')
+                torch.save(dic, './runs/'+dataconfig.DATA.DATASET+'/'+exp_name+'/last_model_dict.pth')
                 if (epoch+1)%(int(config.TRAIN.MAX_EPOCHS/10)) == 0:
-                    torch.save(dic, './models/'+dataconfig.DATA.DATASET+'/'+exp_name+'/epoch'+str(epoch+1)+'_model_dict.pth')
+                    torch.save(dic, './runs/'+dataconfig.DATA.DATASET+'/'+exp_name+'/epoch'+str(epoch+1)+'_model_dict.pth')
                 if metric > best_metric:
                     best_metric = metric
                     best_metric_epoch = epoch + 1
-                    torch.save(dic, './models/'+dataconfig.DATA.DATASET+'/'+exp_name+'/best_model_dict.pth')
+                    torch.save(dic, './runs/'+dataconfig.DATA.DATASET+'/'+exp_name+'/best_model_dict.pth')
                 
                 #if betti_distance < best_betti_distance:
                 #    best_betti_distance = betti_distance
@@ -321,20 +328,18 @@ def main(args):
                 #        epoch + 1, metric, best_metric, best_metric_epoch
                 #    )
                 #)
-                writer.add_scalar("val_mean_dice", metric, epoch + 1)
-                #writer.add_scalar("val_mean_betti", betti_distance, epoch + 1)
-                # plot the last model output as GIF image in TensorBoard with the corresponding image and label
-                if dataconfig.DATA.IN_CHANNELS == 1:
-                    plot_2d_or_3d_image(val_images, epoch + 1, writer, index=0, tag="image")
-                elif dataconfig.DATA.IN_CHANNELS == 3:
-                    plot_2d_or_3d_image(torch.squeeze(val_images).permute(0,3,1,2), epoch + 1, writer, index=0, tag="image", max_channels=3)
-                plot_2d_or_3d_image(val_labels, epoch + 1, writer, index=0, tag="label")
-                plot_2d_or_3d_image(val_outputs, epoch + 1, writer, index=0, tag="output")
+                if args.logging:
+                    wandb_epoch_dict.update({'val_mean_dice': metric})
+                    # log val_images, val_labels and val_outputs as GIF in wandb
+                    wandb_epoch_dict.update({"val_images": [wandb.Video((i.cpu().numpy().transpose(3,0,1,2)*255).astype(np.uint8), caption='Sample'+str(i), fps=10) for i in val_images]})
+                    wandb_epoch_dict.update({"val_labels": [wandb.Video((i.cpu().numpy().transpose(3,0,1,2)*255).astype(np.uint8), caption='Sample'+str(i), fps=10) for i in val_labels]})
+                    wandb_epoch_dict.update({"val_outputs": [wandb.Video((i.cpu().numpy().transpose(3,0,1,2)*255).astype(np.uint8), caption='Sample'+str(i), fps=10) for i in val_outputs]})
+                     
+                    #wandb_epoch_dict.update({'val_mean_betti': betti_distance})
+                    wandb.log(wandb_epoch_dict)
 
     print(f"train completed, best_metric: {best_metric:.4f} at epoch: {best_metric_epoch}")
-    #print(f"train completed, best_betti_distance: {best_betti_distance:.4f} at epoch: {best_betti_distance_epoch}")
-    writer.close()
-
+    wandb.finish()
 
 if __name__ == "__main__":
     args = parser.parse_args()

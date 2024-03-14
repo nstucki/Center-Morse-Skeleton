@@ -11,3 +11,4 @@ runs/*
 models/*
 .vscode/*
 images/*
+*wandb*
