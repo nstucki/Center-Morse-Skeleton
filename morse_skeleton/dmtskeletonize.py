@@ -47,9 +47,10 @@ class DMTSkeletonize(torch.nn.Module):
         MC.extract_morse_skeleton_below(threshold=self.threshold, dimension=3)
 
         pixels_below = np.array(MC.get_morse_skeleton_below())
-        
         skeleton = np.zeros_like(img)
-        skeleton[pixels_below[:,0], pixels_below[:,1], pixels_below[:,2]] = 1
+        
+        if len(pixels_below.shape) == 2:        
+            skeleton[pixels_below[:,0], pixels_below[:,1], pixels_below[:,2]] = 1
 
         return skeleton
 
