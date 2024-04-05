@@ -1,9 +1,9 @@
 DATA:
   DIM: 3                                                        # data dimension
   DATA_PATH: '/home/home/supro/projects/DMT-images/data/topcow/'                                # Path to dataset
-  KEY: 'mr_roi'
+  KEY: 'ct_roi'
   FORMAT: '.nii.gz'
-  DATASET: 'topcow_mr'                                          # Dataset name
+  DATASET: 'topcow_ct'                                          # Dataset name
   IMG_SIZE: [32, 32, 32]                                        # Input image size
   PIXDIM: [0.20, 0.20, 0.20]
   TRAIN_SAMPLES: 72

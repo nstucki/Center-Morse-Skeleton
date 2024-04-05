@@ -23,6 +23,9 @@ from monai.metrics import DiceMetric
 from monai.transforms import (
     Activations,
     AddChanneld,
+    EnsureChannelFirstd,
+    Spacingd,
+    Orientationd,
     AsDiscrete,
     Compose,
     LoadImaged,
@@ -140,8 +143,8 @@ def main(args):
     # create a temporary directory and 40 random image, mask pairs
     data_path = dataconfig.DATA.DATA_PATH
 
-    images = sorted(glob(os.path.join(data_path+'images', "*"+dataconfig.DATA.FORMAT)))
-    segs = sorted(glob(os.path.join(data_path+'labels', "*"+dataconfig.DATA.FORMAT)))
+    images = sorted(glob(os.path.join(data_path+'images', "*"+dataconfig.DATA.KEY+"*"+dataconfig.DATA.FORMAT)))
+    segs = sorted(glob(os.path.join(data_path+'labels', "*"+dataconfig.DATA.KEY+"*"+dataconfig.DATA.FORMAT)))
     
     # train and validation files
     train_files = [{"img": img, "seg": seg} for img, seg in zip(images[:dataconfig.DATA.TRAIN_SAMPLES], segs[:dataconfig.DATA.TRAIN_SAMPLES])]
@@ -151,7 +154,9 @@ def main(args):
     train_transforms = Compose(
         [
             LoadImaged(keys=["img", "seg"]),
-            AddChanneld(keys=["img", "seg"]), # need to check for new dataset
+            Spacingd(keys=["img", "seg"], pixdim=tuple(dataconfig.DATA.PIXDIM), mode=("bilinear", "nearest")),
+            EnsureChannelFirstd(keys=["img", "seg"]), # need to check for new dataset
+            Orientationd(keys=["img", "seg"], axcodes="RAS"),
             ScaleIntensityd(keys=["img", "seg"]), # doing normalisation here :)
             RandCropByPosNegLabeld(
                 keys=["img", "seg"],
@@ -168,7 +173,9 @@ def main(args):
     val_transforms = Compose(
         [
             LoadImaged(keys=["img", "seg"]),
-            AddChanneld(keys=["img", "seg"]),
+            Spacingd(keys=["img", "seg"], pixdim=tuple(dataconfig.DATA.PIXDIM), mode=("bilinear", "nearest")),
+            EnsureChannelFirstd(keys=["img", "seg"]),
+            Orientationd(keys=["img", "seg"], axcodes="RAS"),
             ScaleIntensityd(keys=["img", "seg"]), # doing normalisation here :)
             EnsureTyped(keys=["img", "seg"]),
         ]
@@ -189,7 +196,7 @@ def main(args):
     # create a validation data loader
     val_ds = monai.data.Dataset(data=val_files, transform=val_transforms)
     val_loader = DataLoader(val_ds,
-                            batch_size=config.TRAIN.BATCH_SIZE,
+                            batch_size=config.TRAIN.VAL_BATCH_SIZE,
                             num_workers=config.TRAIN.NUM_WORKERS,
                             collate_fn=list_data_collate)
     
@@ -212,7 +219,7 @@ def main(args):
     ).to(device)
         
     optimizer = torch.optim.Adam(model.parameters(), config.TRAIN.LR)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1000000, gamma=0.1)   #always check that the step size is high enough
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=900, gamma=0.1)   #always check that the step size is high enough
     
     # Resume training
     last_epoch = 0
@@ -243,7 +250,7 @@ def main(args):
         epoch_loss = 0
 
         wandb_epoch_dict = {}
-        for iter_, batch_data in tqdm(enumerate(train_loader)):
+        for iter_, batch_data in enumerate(tqdm(train_loader)):
             inputs, labels = batch_data["img"].to(device), batch_data["seg"].to(device)
             optimizer.zero_grad()
             wandb_batch_dict = {}
@@ -285,7 +292,7 @@ def main(args):
                 val_outputs = None
 
                 #betti_distances = []
-                for val_data in val_loader:
+                for val_data in tqdm(val_loader):
                     val_images, val_labels = val_data["img"].to(device), val_data["seg"].to(device)
                     roi_size = tuple(dataconfig.DATA.IMG_SIZE)
                     sw_batch_size = 4
@@ -311,7 +318,7 @@ def main(args):
                 dic['optimizer'] = optimizer.state_dict()
                 dic['scheduler'] = scheduler.state_dict()
                 torch.save(dic, './runs/'+dataconfig.DATA.DATASET+'/'+exp_name+'/last_model_dict.pth')
-                if (epoch+1)%(int(config.TRAIN.MAX_EPOCHS/10)) == 0:
+                if (epoch+1)%(int(config.TRAIN.MAX_EPOCHS/50)) == 0:
                     torch.save(dic, './runs/'+dataconfig.DATA.DATASET+'/'+exp_name+'/epoch'+str(epoch+1)+'_model_dict.pth')
                 if metric > best_metric:
                     best_metric = metric
@@ -333,7 +340,7 @@ def main(args):
                     # log val_images, val_labels and val_outputs as GIF in wandb
                     wandb_epoch_dict.update({"val_images": [wandb.Video((i.cpu().numpy().transpose(3,0,1,2)*255).astype(np.uint8), caption='Sample'+str(i), fps=10) for i in val_images]})
                     wandb_epoch_dict.update({"val_labels": [wandb.Video((i.cpu().numpy().transpose(3,0,1,2)*255).astype(np.uint8), caption='Sample'+str(i), fps=10) for i in val_labels]})
-                    wandb_epoch_dict.update({"val_outputs": [wandb.Video((i.cpu().numpy().transpose(3,0,1,2)*255).astype(np.uint8), caption='Sample'+str(i), fps=10) for i in val_outputs]})
+                    wandb_epoch_dict.update({"val_outputs": [wandb.Video((i.cpu().numpy().transpose(3,0,1,2)*255).astype(np.uint8), caption='Sample'+str(i), fps=10) for i in val_outputs_bin]})
                      
                     #wandb_epoch_dict.update({'val_mean_betti': betti_distance})
                     wandb.log(wandb_epoch_dict)
