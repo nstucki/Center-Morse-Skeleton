@@ -93,7 +93,7 @@ def main(args):
     val_transforms = Compose(
         [
             LoadImaged(keys=["img", "seg"]),
-            Spacingd(keys=["img"], pixdim=tuple(dataconfig.DATA.PIXDIM), mode=("bilinear")),
+            Spacingd(keys=["img"], pixdim=tuple(dataconfig.DATA.PIXDIM), mode=("bilinear"), align_corners=True),
             EnsureChannelFirstd(keys=["img", "seg"]),
             Orientationd(keys=["img", "seg"], axcodes="RAS"),
             ScaleIntensityd(keys=["img", "seg"]), # doing normalisation here :)
@@ -140,8 +140,8 @@ def main(args):
                 val_outputs = sliding_window_inference(val_images, roi_size, sw_batch_size, model)
             elif dataconfig.DATA.IN_CHANNELS == 3:
                 val_outputs = sliding_window_inference(torch.squeeze(val_images).permute(0,3,1,2), roi_size, sw_batch_size, model)
+            val_outputs = torch.nn.functional.interpolate(val_outputs, val_labels.shape[2:], mode='trilinear', align_corners=True)
             val_outputs = post_trans(val_outputs)
-            val_outputs = torch.nn.functional.interpolate(val_outputs, val_labels.shape[2:], mode='nearest')
             bm_loss_relative_ = betti_matching_loss_relative(val_outputs, val_labels)
             bm_loss_nonrelative_ = betti_matching_loss_nonrelative(val_outputs, val_labels)
             dice_ = dice_loss(val_outputs, val_labels)
