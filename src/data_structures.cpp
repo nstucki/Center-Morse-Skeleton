@@ -836,7 +836,7 @@ void MorseComplex::extractMorseSkeletonInDimBelow(const uint8_t& dim, const valu
 
 			morseSkeletonBelow.insert(c);
 			flow.clear();
-			traverseFlow(c, flow);
+			traverseFlow(c, flow, false);
 			for (const tuple<Cube, Cube, Cube>& t : flow) {
 				if (get<1>(t) != get<2>(t)) { morseSkeletonBelow.insert(get<2>(t)); }
 			}
