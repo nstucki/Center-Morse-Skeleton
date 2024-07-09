@@ -839,7 +839,11 @@ void MorseComplex::extractMorseSkeletonInDimBelow(const uint8_t& dim, const valu
 		for (const Cube& c : C[dim]) {
 			if (c.birth >= threshold) { continue; }
 
-			morseSkeletonBelow.insert(c);
+			//morseSkeletonBelow.insert(c);
+			pixels = c.getVertices();
+			for (const vector<index_t>& p : pixels) {
+				morseSkeletonVoxelsBelow.insert(p);
+			}
 			flow.clear();
 			traverseFlow(c, flow, false);
 			for (const tuple<Cube, Cube, Cube>& t : flow) {
