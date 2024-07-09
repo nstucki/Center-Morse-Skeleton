@@ -1656,7 +1656,6 @@ void MorseComplex::processLowerStarsWithoutPerturbation(const value_t& threshold
 		return;
 	}
 
-	vector<Cube> L;
 	priority_queue<Cube, vector<Cube>, ReverseOrder> PQzero;
 	priority_queue<Cube, vector<Cube>, ReverseOrder> PQone;
 	Cube alpha;
@@ -1670,7 +1669,7 @@ void MorseComplex::processLowerStarsWithoutPerturbation(const value_t& threshold
 			for (index_t z = 0; z < shape[2]; ++z) {
 				if (getValue(x, y, z) > threshold) { continue; }
 
-				L = lowerStars[hashVoxel(vector<index_t> {x,y,z})];
+				vector<Cube>& L = lowerStars[hashVoxel(vector<index_t> {x,y,z})];
 
 				if (L.size() == 0) { C[0].push_back(Cube(*this, x, y, z, 0, 0)); }
 				else {
@@ -1801,7 +1800,6 @@ void MorseComplex::processLowerStarsWithoutPerturbationBetween(const index_t& xM
 	index_t yBound = min(yMax, shape[1]);
 	index_t zBound = min(zMax, shape[2]);
 
-	vector<Cube> L;
 	vector<vector<Cube>> lowerStars;
 	getLowerStarsWithoutPerturbationBetween(lowerStars, xMin, xBound, yMin, yBound, zMin, zBound);
 
@@ -1810,7 +1808,7 @@ void MorseComplex::processLowerStarsWithoutPerturbationBetween(const index_t& xM
 			for (index_t z = zMin; z < zBound; ++z) {
 				if (getValue(x, y, z) > threshold) { continue; }
 
-				L = lowerStars[hashVoxel(vector<index_t> {x,y,z})];
+				vector<Cube>& L = lowerStars[hashVoxel(vector<index_t> {x,y,z})];
 
 				if (L.size() == 0) { insertToC(Cube(*this, x, y, z, 0, 0)); }
 				else {
