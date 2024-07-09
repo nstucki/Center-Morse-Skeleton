@@ -157,6 +157,7 @@ public:
 	void prepareMorseSkeletonAbove(const value_t& threshold=INFTY, const value_t& tolerance=0, bool print=true);
 	void extractMorseSkeletonBelow(const value_t& threshold=INFTY, const uint8_t& dimension=3);
 	void extractMorseSkeletonInDimBelow(const uint8_t& dim, const value_t& threshold=INFTY);
+	void extractMorseSkeletonParallelBelow(const value_t& threshold=INFTY, const uint8_t& dimension=3);
 	void prepareAndExtractMorseSkeletonBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, const vector<uint8_t>& dimensions={1,2,3});
 	void extractMorseSkeletonAbove(const value_t& threshold=INFTY);
 	vector<pair<Cube, uint8_t>> getMorseBoundary(const Cube& s) const;
