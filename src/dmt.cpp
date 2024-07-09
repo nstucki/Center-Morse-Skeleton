@@ -28,7 +28,7 @@ PYBIND11_MODULE(morse_complex, m) {
 
         .def("perturb_image_minimal", &MorseComplex::perturbImageMinimal)
 
-        .def("process_lower_stars", &MorseComplex::processLowerStars, py::arg("x_patch")=1, py::arg("y_patch")=1, py::arg("z_patch")=1 )
+        .def("process_lower_stars", &MorseComplex::processLowerStars, py::arg("x_patch")=1, py::arg("y_patch")=1, py::arg("z_patch")=1, py::arg("threshold")=INFTY)
 
         .def("check_gradient_vectorfield", &MorseComplex::checkV)
 

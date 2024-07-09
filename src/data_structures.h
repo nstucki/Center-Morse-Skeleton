@@ -145,7 +145,7 @@ public:
 						const uint8_t& type, const uint8_t& dim) const;
 	void perturbImage(const value_t& epsilon=0);
 	void perturbImageMinimal();
-	void processLowerStars(const index_t& xPatch=1, const index_t& yPatch=1, const index_t& zPatch=1);
+	void processLowerStars(const index_t& xPatch=1, const index_t& yPatch=1, const index_t& zPatch=1, const value_t& threshold=INFTY);
 	void cancelPairsBelow(const value_t& threshold=INFTY, string orderDim=">", string orderValue=">", bool print=true);
 	void cancelPairsAbove(const value_t& threshold=INFTY, string orderDim=">", string orderValue=">", bool print=true);
 	void cancelLowPersistencePairsBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, bool print=true);
@@ -190,15 +190,17 @@ private:
 	Cube getUnpairedFace(const Cube& cube, const vector<Cube>& L) const;
 	void insertToC(const Cube& cube);
 	void insertToV(const Cube& cube0, const Cube& cube1);
-	void processLowerStarsWithPerturbation();
-	void processLowerStarsWithoutPerturbation();
+	void processLowerStarsWithPerturbation(const value_t& threshold);
+	void processLowerStarsWithoutPerturbation(const value_t& threshold);
 	void processLowerStarsBetween(const index_t& xMin, const index_t& xMax, const index_t& yMin, const index_t& yMax,
-									const index_t& zMin, const index_t& zMax);
+									const index_t& zMin, const index_t& zMax, const value_t& threshold);
 	void processLowerStarsWithoutPerturbationBetween(const index_t& xMin, const index_t& xMax, const index_t& yMin,
-														const index_t& yMax, const index_t& zMin, const index_t& zMax);
-	void processLowerStarsWithPerturbationParallel(const index_t& xPatch = 1, const index_t& yPatch = 1, const index_t& zPatch = 1);
-	void processLowerStarsWithoutPerturbationParallel(const index_t& xPatch = 1, const index_t& yPatch = 1, 
-														const index_t& zPatch = 1);
+														const index_t& yMax, const index_t& zMin, const index_t& zMax,
+														const value_t& threshold);
+	void processLowerStarsWithPerturbationParallel(const index_t& xPatch = 1, const index_t& yPatch = 1, const index_t& zPatch = 1,
+													const value_t& threshold=INFTY);
+	void processLowerStarsWithoutPerturbationParallel(const index_t& xPatch = 1, const index_t& yPatch = 1, const index_t& zPatch = 1, 
+														const value_t& threshold=INFTY);
 	void traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
 	void traverseCoflow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
 	void getConnections(const Cube&s, const Cube& t, vector<tuple<Cube, Cube, Cube>>& connections) const;
