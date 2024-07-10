@@ -2045,18 +2045,19 @@ void MorseComplex::traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& 
 		enumerator.setBoundaryEnumerator(a);
 		while (enumerator.hasNextFace()) {
 			b = enumerator.nextFace;
-			if (find(C[b.dim].begin(), C[b.dim].end(), b) != C[b.dim].end()) { c = b; }
-			else {
+			//if (find(C[b.dim].begin(), C[b.dim].end(), b) != C[b.dim].end()) { c = b; }
+			//else {
 #ifdef USE_CUBE_MAP
 				c = V.getValue(b);
-				if (c == Cube()) { c = a; }
+				//if (c == Cube()) { c = a; }
+				if (c == Cube()) { c = b; }
 #else
 				auto it = V.find(b);
 				if (it != V.end()) { c = it->second; }
 				else { c = a; }
 #endif
-			}
-			if (c != a) {
+			//}
+			//if (c != a) {
 				flow.push_back(tuple(a, b, c));
 				if (c != b) {
 					auto it = seen.find(c);
@@ -2082,7 +2083,7 @@ void MorseComplex::traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& 
 						seen.insert(c);
 					}
 				}
-			}
+			//}
 		}
 	}
 }
