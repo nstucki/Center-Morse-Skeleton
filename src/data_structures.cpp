@@ -2032,20 +2032,16 @@ void MorseComplex::traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& 
 	}
 
 	BoundaryEnumerator enumerator(*this);
-	//priority_queue<Cube> queue;
-	vector<Cube> queue;
+	priority_queue<Cube> queue;
 	set<Cube> seen;
-	//queue.push(s);
-	queue.push_back(s);
+	queue.push(s);
 	seen.insert(s);
 
 	Cube a;
 	Cube b;
 	Cube c;
-	//while (!queue.empty()) {
-	while (queue.size() != 0) {
-		//a = queue.top(); queue.pop();
-		a = queue.front(); queue.erase(queue.begin());
+	while (!queue.empty()) {
+		a = queue.top(); queue.pop();
 		enumerator.setBoundaryEnumerator(a);
 		while (enumerator.hasNextFace()) {
 			b = enumerator.nextFace;
@@ -2083,8 +2079,7 @@ void MorseComplex::traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& 
 							}
 #endif
 						}
-						//queue.push(c);
-						queue.push_back(c);
+						queue.push(c);
 						seen.insert(c);
 					}
 				}
