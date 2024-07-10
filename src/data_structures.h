@@ -140,33 +140,46 @@ public:
 	MorseComplex(const vector<value_t>& image, const vector<index_t>& shape);
 	MorseComplex(MorseComplex&& other);
 	~MorseComplex();
+
 	value_t getValue(const index_t& x, const index_t& y, const index_t& z) const;
 	value_t getBirth(const index_t& x, const index_t& y, const index_t& z, 
 						const uint8_t& type, const uint8_t& dim) const;
+
 	void perturbImage(const value_t& epsilon=0);
 	void perturbImageMinimal();
+
 	void processLowerStars(const index_t& xPatch=1, const index_t& yPatch=1, const index_t& zPatch=1, const value_t& threshold=INFTY);
+
 	void cancelPairsBelow(const value_t& threshold=INFTY, string orderDim=">", string orderValue=">", bool print=true);
 	void cancelPairsAbove(const value_t& threshold=INFTY, string orderDim=">", string orderValue=">", bool print=true);
 	void cancelLowPersistencePairsBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, bool print=true);
 	void cancelLowPersistencePairsInDimBelow(const uint8_t& dim, const value_t& threshold=INFTY, const value_t& epsilon=0, bool print=true);
 	void cancelClosePairsBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, bool print=true);
 	void cancelBoundaryPairsBelow(const value_t& threshold=INFTY, const value_t& delta=0, bool print=true);
+
 	void prepareMorseSkeletonBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, const value_t& delta=-1, bool print=true);
 	void prepareMorseSkeletonTestBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, const value_t& delta=-1, bool print=true);
 	void prepareMorseSkeletonAbove(const value_t& threshold=INFTY, const value_t& tolerance=0, bool print=true);
+
 	void extractMorseSkeletonBelow(const value_t& threshold=INFTY, const uint8_t& dimension=3);
 	void extractMorseSkeletonInDimBelow(const uint8_t& dim, const value_t& threshold=INFTY);
+	void extractMorseSkeletonOfBatchInDimBelow(const uint8_t& dim, const size_t& start, const size_t& end, const value_t& threshold=INFTY);
 	void extractMorseSkeletonParallelBelow(const value_t& threshold=INFTY, const uint8_t& dimension=3);
+	void extractMorseSkeletonDoubleParallelBelow(const value_t& threshold=INFTY, const uint8_t& dimension=3, const size_t& batches=1);
+
 	void prepareAndExtractMorseSkeletonBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, const vector<uint8_t>& dimensions={1,2,3});
 	void extractMorseSkeletonAbove(const value_t& threshold=INFTY);
+
 	vector<pair<Cube, uint8_t>> getMorseBoundary(const Cube& s) const;
 	vector<pair<Cube, uint8_t>> getMorseCoboundary(const Cube& s) const;
+
 	vector<vector<index_t>> getMorseSkeletonVoxelsBelow() const;
 	vector<vector<index_t>> getMorseSkeletonVoxelsAbove() const;
+
 	value_t getPerturbation() const;
 	vector<vector<Cube>> getCriticalCells() const;
 	vector<vector<size_t>> getNumberOfCriticalCells(const value_t& threshold=INFTY) const;
+
 	void checkV() const;
 	void checkBoundaryAndCoboundary() const;
 	void printNumberOfCriticalCells(const value_t& threshold=INFTY) const;
