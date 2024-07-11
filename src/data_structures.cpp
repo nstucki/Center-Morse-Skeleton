@@ -297,7 +297,7 @@ void MorseComplex::cancelPairsBelow(const value_t& threshold, string orderDim, s
 	}
 
 	if (threshold == -INFTY) {
-		if (print) { cout << endl; }
+		if (print) { cout << endl << endl; }
 		return;
 	}
 
@@ -370,6 +370,80 @@ void MorseComplex::cancelPairsBelow(const value_t& threshold, string orderDim, s
 }
 
 
+void MorseComplex::cancelPairsBelowInDim(const uint8_t& dim, const value_t& threshold, string orderValue, bool print) {
+	if (print) { 
+		cout << endl << "Canceling pairs < " << threshold << endl;
+		cout << "Canceling order:" << endl;
+        cout << "dimension: " << unsigned(dim) << endl;
+        cout << "value: " << orderValue << endl;
+		cout << endl;
+	
+		cout << "Critical cells:" << endl;
+		printNumberOfCriticalCells(threshold);
+	}
+
+	if (threshold == -INFTY) {
+		if (print) { cout << endl << endl; }
+		return;
+	}
+
+	sort(C[dim].begin(), C[dim].end());
+
+	bool canceled = true;
+	vector<Cube> cancelable;
+
+	if (orderValue == ">") {
+		while (canceled) {
+			canceled = false;
+			for (auto it = C[dim].rbegin(); it != C[dim].rend(); ++it) {
+				Cube s = *it;
+
+				if (s.birth >= threshold) { continue; }
+
+				vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
+
+				cancelable.clear();
+				for (const pair<Cube, uint8_t> b : boundary) {
+					if (get<1>(b) == 1) { cancelable.push_back(get<0>(b)); }
+				}
+				if (cancelable.size() == 0) { continue; }
+				sort(cancelable.begin(), cancelable.end());
+
+				cancelPair(s, cancelable.back());
+				canceled = true;
+
+				if (print) { printNumberOfCriticalCells(threshold); }
+				break;
+			}
+		}
+	} 
+	else if (orderValue == "<") {
+		while (canceled) {
+			canceled = false;
+			for (const Cube& s : C[dim]) {
+				if (s.birth >= threshold) { continue; }
+
+				vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
+
+				cancelable.clear();
+				for (const pair<Cube, uint8_t> b : boundary) {
+					if (get<1>(b) == 1) { cancelable.push_back(get<0>(b)); }
+				}
+				if (cancelable.size() == 0) { continue; }
+				sort(cancelable.begin(), cancelable.end());
+
+				cancelPair(s, cancelable.back());
+				canceled = true;
+
+				if (print) { printNumberOfCriticalCells(threshold); }
+				break;
+			}
+		}
+	}
+	if (print) { cout << endl << endl; }
+}
+
+
 void MorseComplex::cancelPairsAbove(const value_t& threshold, string orderDim, string orderValue, bool print) {
 	if (print) {
 		cout << endl << "Canceling pairs >= " << threshold << endl;
@@ -383,7 +457,7 @@ void MorseComplex::cancelPairsAbove(const value_t& threshold, string orderDim, s
 	}
 
 	if (threshold == INFTY) {
-		if (print) { cout << endl; }
+		if (print) { cout << endl << endl; }
 		return;
 	}
 
@@ -464,7 +538,7 @@ void MorseComplex::cancelLowPersistencePairsBelow(const value_t& threshold, cons
 	}
 
 	if (threshold == -INFTY) {
-		if (print) { cout << endl; }
+		if (print) { cout << endl << endl; }
 		return;
 	}
 
@@ -509,7 +583,7 @@ void MorseComplex::cancelLowPersistencePairsInDimBelow(const uint8_t& dim, const
 	}
 
 	if (threshold == -INFTY) {
-		if (print) { cout << endl; }
+		if (print) { cout << endl << endl; }
 		return;
 	}
 
@@ -554,7 +628,7 @@ void MorseComplex::cancelClosePairsBelow(const value_t& threshold, const value_t
 	}
 
 	if (threshold == -INFTY) {
-		if (print) { cout << endl; }
+		if (print) { cout << endl << endl; }
 		return;
 	}
 
@@ -625,7 +699,7 @@ void MorseComplex::cancelBoundaryPairsBelow(const value_t& threshold, const valu
 	}
 
 	if (threshold == -INFTY) {
-		if (print) { cout << endl; }
+		if (print) { cout << endl << endl; }
 		return;
 	}
 
@@ -671,7 +745,7 @@ void MorseComplex::prepareMorseSkeletonTestBelow(const value_t& threshold, const
 	}
 
 	if (threshold == -INFTY) {
-		if (print) { cout << endl; }
+		if (print) { cout << endl << endl; }
 		return;
 	}
 
@@ -730,7 +804,7 @@ void MorseComplex::prepareMorseSkeletonAbove(const value_t& threshold, const val
 	}
 
 	if (threshold == INFTY) {
-		if (print) { cout << endl; }
+		if (print) { cout << endl << endl; }
 		return;
 	}
 
@@ -784,7 +858,7 @@ void MorseComplex::prepareMorseSkeletonAbove(const value_t& threshold, const val
 			}
 		}
 	}
-	if (print) { cout << endl; }
+	if (print) { cout << endl << endl; }
 }
 
 

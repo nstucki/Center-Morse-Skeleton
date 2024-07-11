@@ -43,6 +43,9 @@ PYBIND11_MODULE(morse_complex, m) {
         .def("cancel_pairs_below", &MorseComplex::cancelPairsBelow, py::arg("threshold")=INFTY, py::arg("order_dim")=">", 
                                                                     py::arg("order_value")=">", py::arg("print")=true)
 
+        .def("cancel_pairs_below_in_dim", &MorseComplex::cancelPairsBelowInDim, py::arg("dim"), py::arg("threshold")=INFTY, 
+                                                                    py::arg("order_value")=">", py::arg("print")=true)
+
         .def("cancel_pairs_above", &MorseComplex::cancelPairsAbove, py::arg("threshold")=INFTY, py::arg("order_dim")=">", 
                                                                     py::arg("order_value")=">", py::arg("print")=true)
 
