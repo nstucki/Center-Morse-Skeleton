@@ -151,6 +151,7 @@ public:
 	void processLowerStars(const index_t& xPatch=1, const index_t& yPatch=1, const index_t& zPatch=1, const value_t& threshold=INFTY);
 
 	void cancelPairsBelow(const value_t& threshold=INFTY, string orderDim=">", string orderValue=">", bool print=true);
+	void cancelPairsBelowInDim(const uint8_t& dim, const value_t& threshold=INFTY, string orderValue=">", bool print=true);
 	void cancelPairsAbove(const value_t& threshold=INFTY, string orderDim=">", string orderValue=">", bool print=true);
 	void cancelLowPersistencePairsBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, bool print=true);
 	void cancelLowPersistencePairsInDimBelow(const uint8_t& dim, const value_t& threshold=INFTY, const value_t& epsilon=0, bool print=true);
