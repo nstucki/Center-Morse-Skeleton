@@ -29,7 +29,7 @@ def get_neighbors_18(x, y, z):
     neighbors = [
         (x + i, y + j, z + k)
         for i, j, k in product([-1, 0, 1], repeat=3)
-        if (i, j, k) != (0, 0, 0) and abs(i) + abs(j) + abs(k) == 2
+        if (i, j, k) != (0, 0, 0) and abs(i) + abs(j) + abs(k) <= 2
     ]
     return neighbors
 
