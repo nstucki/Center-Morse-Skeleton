@@ -163,7 +163,7 @@ public:
 	void prepareMorseSkeletonAbove(const value_t& threshold=INFTY, const value_t& tolerance=0, bool print=true);
 
 	void extractMorseSkeletonBelow(const value_t& threshold=INFTY, const uint8_t& dimension=3);
-	void extractMorseSkeletonInDimBelow(const uint8_t& dim, const value_t& threshold=INFTY);
+	set<vector<index_t>> extractMorseSkeletonInDimBelow(const uint8_t& dim, const value_t& threshold=INFTY);
 	void extractMorseSkeletonOfBatchInDimBelow(const uint8_t& dim, const size_t& start, const size_t& end, const value_t& threshold=INFTY);
 	void extractMorseSkeletonParallelBelow(const value_t& threshold=INFTY, const uint8_t& dimension=3);
 	void extractMorseSkeletonDoubleParallelBelow(const value_t& threshold=INFTY, const uint8_t& dimension=3, const size_t& batches=1);

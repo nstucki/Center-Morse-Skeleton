@@ -1,0 +1,2 @@
+-- compile for mac chips: cmake -DCMAKE_OSX_ARCHITECTURES=arm64 ..
+-- use numpy==1.24.0 if using pynrrd

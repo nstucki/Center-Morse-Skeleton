@@ -16,6 +16,8 @@ find_package(Threads REQUIRED)
 add_compile_options("-pthread")
 link_libraries("-pthread")
 
+#find_package(TBB REQUIRED)
+
 pybind11_add_module(morse_complex
     src/dmt.cpp
     src/data_structures.cpp
@@ -51,3 +53,7 @@ set_target_properties(DMT PROPERTIES
     CXX_STANDARD 17
     CXX_EXTENSIONS OFF
 )
+
+#target_link_libraries(morse_complex PUBLIC TBB::tbb)
+#target_link_libraries(DMT PUBLIC TBB::tbb)
+#target_link_libraries(CancelPairs PUBLIC TBB::tbb)

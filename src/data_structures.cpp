@@ -896,8 +896,10 @@ void MorseComplex::extractMorseSkeletonBelow(const value_t& threshold, const uin
 }
 
 
-void MorseComplex::extractMorseSkeletonInDimBelow(const uint8_t& dim, const value_t& threshold) {
+set<vector<index_t>> MorseComplex::extractMorseSkeletonInDimBelow(const uint8_t& dim, const value_t& threshold) {
+	set<vector<index_t>> skeleton;
 	vector<vector<index_t>> pixels;
+
 	if (dim == 0) {
 		for (const Cube& c : C[0]) {
 			if (c.birth >= threshold) { continue; }
@@ -905,7 +907,7 @@ void MorseComplex::extractMorseSkeletonInDimBelow(const uint8_t& dim, const valu
 			//morseSkeletonBelow.insert(c);
 			pixels = c.getVertices();
 			for (const vector<index_t>& p : pixels) {
-				morseSkeletonVoxelsBelow.insert(p);
+				skeleton.insert(p);
 			}
 		}
 	} else {
@@ -916,7 +918,7 @@ void MorseComplex::extractMorseSkeletonInDimBelow(const uint8_t& dim, const valu
 			//morseSkeletonBelow.insert(c);
 			pixels = c.getVertices();
 			for (const vector<index_t>& p : pixels) {
-				morseSkeletonVoxelsBelow.insert(p);
+				skeleton.insert(p);
 			}
 			flow.clear();
 			traverseFlow(c, flow, false);
@@ -925,12 +927,14 @@ void MorseComplex::extractMorseSkeletonInDimBelow(const uint8_t& dim, const valu
 					//morseSkeletonBelow.insert(get<2>(t));
 					pixels = get<2>(t).getVertices();
 					for (const vector<index_t>& p : pixels) {
-						morseSkeletonVoxelsBelow.insert(p);
+						skeleton.insert(p);
 					}
 				}
 			}
 		}
 	}
+
+	return skeleton;
 }
 
 
@@ -980,15 +984,24 @@ void MorseComplex::extractMorseSkeletonParallelBelow(const value_t& threshold, c
 	morseSkeletonBelow.clear();
 	morseSkeletonVoxelsBelow.clear();
 
-	vector<std::future<void>> futures;
+	vector<std::future<set<vector<index_t>>>> futures;
 	for (uint8_t dim = 0; dim < dimension+1; ++dim) {
 		futures.push_back(async(launch::async, &MorseComplex::extractMorseSkeletonInDimBelow,
 								this, dim, threshold));
 	}
-	
+
 	for (auto& future : futures) {
-        future.wait();
-    }
+		set<vector<index_t>> skeleton = future.get();
+		set<vector<index_t>>::iterator itr;
+   
+		for (itr = skeleton.begin(); itr != skeleton.end(); ++itr) {
+			morseSkeletonVoxelsBelow.insert(*itr);
+		}
+	}
+	
+	// for (auto& future : futures) {
+    //     future.wait();
+    // }
 
 	// vector<vector<index_t>> pixels;
 	// for (const Cube& c : morseSkeletonBelow) {
@@ -1056,18 +1069,18 @@ void MorseComplex::prepareAndExtractMorseSkeletonBelow(const value_t& threshold,
 		futures.push_back(async(launch::async, &MorseComplex::cancelLowPersistencePairsInDimBelow,
 								this, 2, threshold, epsilon, false));
 	}
-	futures.push_back(async(launch::async, &MorseComplex::extractMorseSkeletonInDimBelow,
-								this, 3, threshold));
-	futures.push_back(async(launch::async, &MorseComplex::extractMorseSkeletonInDimBelow,
-								this, 0, threshold));
+	//futures.push_back(async(launch::async, &MorseComplex::extractMorseSkeletonInDimBelow,
+	//							this, 3, threshold));
+	//futures.push_back(async(launch::async, &MorseComplex::extractMorseSkeletonInDimBelow,
+	//							this, 0, threshold));
 	if(find(dimensions.begin(), dimensions.end(), 2) != dimensions.end()) {
 		futures[0].wait();
 	}
 
-	futures.push_back(async(launch::async, &MorseComplex::extractMorseSkeletonInDimBelow,
-								this, 1, threshold));
-	futures.push_back(async(launch::async, &MorseComplex::extractMorseSkeletonInDimBelow,
-								this, 2, threshold));
+	//futures.push_back(async(launch::async, &MorseComplex::extractMorseSkeletonInDimBelow,
+	//							this, 1, threshold));
+	//futures.push_back(async(launch::async, &MorseComplex::extractMorseSkeletonInDimBelow,
+	//							this, 2, threshold));
 	for (auto& future : futures) {
         future.wait();
     }
