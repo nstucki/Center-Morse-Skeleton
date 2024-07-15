@@ -163,13 +163,11 @@ public:
 	void prepareMorseSkeletonAbove(const value_t& threshold=INFTY, const value_t& tolerance=0, bool print=true);
 
 	void extractMorseSkeletonBelow(const value_t& threshold=INFTY, const uint8_t& dimension=3);
-	set<vector<index_t>> extractMorseSkeletonInDimBelow(const uint8_t& dim, const value_t& threshold=INFTY);
-	void extractMorseSkeletonOfBatchInDimBelow(const uint8_t& dim, const size_t& start, const size_t& end, const value_t& threshold=INFTY);
 	void extractMorseSkeletonParallelBelow(const value_t& threshold=INFTY, const uint8_t& dimension=3);
-	void extractMorseSkeletonDoubleParallelBelow(const value_t& threshold=INFTY, const uint8_t& dimension=3, const size_t& batches=1);
+	void extractMorseSkeletonBatchwiseBelow(const value_t& threshold=INFTY, const uint8_t& dimension=3, const size_t& batches=1);
+	void extractMorseSkeletonAbove(const value_t& threshold=INFTY);
 
 	void prepareAndExtractMorseSkeletonBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, const vector<uint8_t>& dimensions={1,2,3});
-	void extractMorseSkeletonAbove(const value_t& threshold=INFTY);
 
 	vector<pair<Cube, uint8_t>> getMorseBoundary(const Cube& s) const;
 	vector<pair<Cube, uint8_t>> getMorseCoboundary(const Cube& s) const;
@@ -219,6 +217,8 @@ private:
 	void traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
 	void traverseCoflow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
 	void getConnections(const Cube&s, const Cube& t, vector<tuple<Cube, Cube, Cube>>& connections) const;
+	set<vector<index_t>> extractMorseSkeletonInDimBelow(const uint8_t& dim, const value_t& threshold=INFTY);
+	set<vector<index_t>> extractMorseSkeletonOfBatchInDimBelow(const uint8_t& dim, const size_t& start, const size_t& end, const value_t& threshold=INFTY);
 	void cancelPair(const Cube&s, const Cube& t);
 	const vector<index_t> shape;
 	index_t mYZ = shape[1]*shape[2];
