@@ -148,7 +148,7 @@ public:
 	void perturbImage(const value_t& epsilon=0);
 	void perturbImageMinimal();
 
-	void processLowerStars(const index_t& xPatch=1, const index_t& yPatch=1, const index_t& zPatch=1, const value_t& threshold=INFTY);
+	void processLowerStars(const value_t& threshold=INFTY, const index_t& xPatch=1, const index_t& yPatch=1, const index_t& zPatch=1);
 
 	void cancelPairsBelow(const value_t& threshold=INFTY, string orderDim=">", string orderValue=">", bool print=true);
 	void cancelPairsBelowInDim(const uint8_t& dim, const value_t& threshold=INFTY, string orderValue=">", bool print=true);
@@ -194,11 +194,12 @@ private:
 	value_t getMinimumDistance();
 	vector<Cube> getLowerStar(const index_t& x, const index_t& y, const index_t& z) const;
 	vector<Cube> getLowerStarWithoutPerturbation(const index_t& x, const index_t& y, const index_t& z) const;
-	void getLowerStarsWithoutPerturbation(vector<vector<Cube>>& lowerStars) const;
+	void getLowerStarsWithoutPerturbation(vector<vector<Cube>>& lowerStars, const value_t& threshold) const;
 	void getLowerStarsWithoutPerturbationBetween(vector<vector<Cube>>& lowerStars, 
 													const index_t& xMin, const index_t& xMax,
 													const index_t& yMin, const index_t& yMax,
-													const index_t& zMin, const index_t& zMax) const;
+													const index_t& zMin, const index_t& zMax,
+													const value_t& threshold) const;
 	size_t numUnpairedFaces(const Cube& cube, const vector<Cube>& L) const;
 	Cube getUnpairedFace(const Cube& cube, const vector<Cube>& L) const;
 	void insertToC(const Cube& cube);
@@ -207,9 +208,9 @@ private:
 	void processLowerStarsWithoutPerturbation(const value_t& threshold);
 	void processLowerStarsBetween(const index_t& xMin, const index_t& xMax, const index_t& yMin, const index_t& yMax,
 									const index_t& zMin, const index_t& zMax, const value_t& threshold);
-	void processLowerStarsWithoutPerturbationBetween(const index_t& xMin, const index_t& xMax, const index_t& yMin,
-														const index_t& yMax, const index_t& zMin, const index_t& zMax,
-														const value_t& threshold);
+	vector<pair<Cube, Cube>> processLowerStarsWithoutPerturbationBetween(const index_t& xMin, const index_t& xMax, const index_t& yMin,
+																	const index_t& yMax, const index_t& zMin, const index_t& zMax,
+																	const value_t& threshold);
 	void processLowerStarsWithPerturbationParallel(const index_t& xPatch = 1, const index_t& yPatch = 1, const index_t& zPatch = 1,
 													const value_t& threshold=INFTY);
 	void processLowerStarsWithoutPerturbationParallel(const index_t& xPatch = 1, const index_t& yPatch = 1, const index_t& zPatch = 1, 

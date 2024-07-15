@@ -273,7 +273,7 @@ void MorseComplex::perturbImageMinimal() {
 }
 
 
-void MorseComplex::processLowerStars(const index_t& xPatch, const index_t& yPatch, const index_t& zPatch, const value_t& threshold) {
+void MorseComplex::processLowerStars(const value_t& threshold, const index_t& xPatch, const index_t& yPatch, const index_t& zPatch) {
 	if (!perturbed) {
 		if (xPatch == 1 && yPatch == 1 && zPatch == 1) { processLowerStarsWithoutPerturbation(threshold); }
 		else { processLowerStarsWithoutPerturbationParallel(xPatch, yPatch, zPatch, threshold); }	
@@ -1540,7 +1540,7 @@ vector<Cube> MorseComplex::getLowerStarWithoutPerturbation(const index_t& x, con
 }
 
 
-void MorseComplex::getLowerStarsWithoutPerturbation(vector<vector<Cube>>& lowerStars) const {
+void MorseComplex::getLowerStarsWithoutPerturbation(vector<vector<Cube>>& lowerStars, const value_t& threshold) const {
 	lowerStars = vector<vector<Cube>>(shape[0]*shape[1]*shape[2]);
 	value_t birth;
 	Cube cube;
@@ -1548,18 +1548,18 @@ void MorseComplex::getLowerStarsWithoutPerturbation(vector<vector<Cube>>& lowerS
 		for (index_t y = 0; y < shape[1]; ++y) {
 			for (index_t z = 0; z < shape[2]; ++z) {
 				birth = getBirth(x, y, z, 0, 3);
-				if (birth != INFTY) {
+				if (birth != INFTY && birth <= threshold) {
 					cube = Cube(birth, x, y, z, 0, 3);
 					lowerStars[hashVoxel(getParentVoxel(cube))].push_back(cube);
 				}
 				for (uint8_t type = 0; type < 3; ++type) {
 					birth = getBirth(x, y, z, type, 1);
-					if (birth != INFTY) {
+					if (birth != INFTY && birth <= threshold) {
 						cube = Cube(birth, x, y, z, type, 1);
 						lowerStars[hashVoxel(getParentVoxel(cube))].push_back(cube);
 					}
 					birth = getBirth(x, y, z, type, 2);
-					if (birth != INFTY) {
+					if (birth != INFTY && birth <= threshold) {
 						cube = Cube(birth, x, y, z, type, 2);
 						lowerStars[hashVoxel(getParentVoxel(cube))].push_back(cube);
 					}
@@ -1573,7 +1573,8 @@ void MorseComplex::getLowerStarsWithoutPerturbation(vector<vector<Cube>>& lowerS
 void MorseComplex::getLowerStarsWithoutPerturbationBetween(vector<vector<Cube>>& lowerStars, 
 															const index_t& xMin, const index_t& xMax,
 															const index_t& yMin, const index_t& yMax,
-															const index_t& zMin, const index_t& zMax) const {
+															const index_t& zMin, const index_t& zMax,
+															const value_t& threshold) const {
 	index_t xL = (xMin == 0) ? 0 : xMin-1;
 	index_t yL = (yMin == 0) ? 0 : yMin-1;
 	index_t zL = (zMin == 0) ? 0 : zMin-1;
@@ -1588,18 +1589,18 @@ void MorseComplex::getLowerStarsWithoutPerturbationBetween(vector<vector<Cube>>&
 		for (index_t y = yL; y < yU; ++y) {
 			for (index_t z = zL; z < zU; ++z) {
 				birth = getBirth(x, y, z, 0, 3);
-				if (birth != INFTY) {
+				if (birth != INFTY && birth <= threshold) {
 					cube = Cube(birth, x, y, z, 0, 3);
 					lowerStars[hashVoxel(getParentVoxel(cube))].push_back(cube);
 				}
 				for (uint8_t type = 0; type < 3; ++type) {
 					birth = getBirth(x, y, z, type, 1);
-					if (birth != INFTY) {
+					if (birth != INFTY && birth <= threshold) {
 						cube = Cube(birth, x, y, z, type, 1);
 						lowerStars[hashVoxel(getParentVoxel(cube))].push_back(cube);
 					}
 					birth = getBirth(x, y, z, type, 2);
-					if (birth != INFTY) {
+					if (birth != INFTY && birth <= threshold) {
 						cube = Cube(birth, x, y, z, type, 2);
 						lowerStars[hashVoxel(getParentVoxel(cube))].push_back(cube);
 					}
@@ -1724,7 +1725,7 @@ void MorseComplex::processLowerStarsWithoutPerturbation(const value_t& threshold
 	Cube pair;
 
 	vector<vector<Cube>> lowerStars;
-	getLowerStarsWithoutPerturbation(lowerStars);
+	getLowerStarsWithoutPerturbation(lowerStars, threshold);
 
 	for (index_t x = 0; x < shape[0]; ++x) {
 		for (index_t y = 0; y < shape[1]; ++y) {
@@ -1850,9 +1851,11 @@ void MorseComplex::processLowerStarsBetween(const index_t& xMin, const index_t& 
 }
 
 
-void MorseComplex::processLowerStarsWithoutPerturbationBetween(const index_t& xMin, const index_t& xMax, const index_t& yMin, 
-																const index_t& yMax, const index_t& zMin, const index_t& zMax,
-																const value_t& threshold) {
+vector<pair<Cube,Cube>> MorseComplex::processLowerStarsWithoutPerturbationBetween(const index_t& xMin, const index_t& xMax, const index_t& yMin, 
+																					const index_t& yMax, const index_t& zMin, const index_t& zMax,
+																					const value_t& threshold) {
+	vector<pair<Cube,Cube>> pairs;
+
 	priority_queue<Cube, vector<Cube>, ReverseOrder> PQzero;
 	priority_queue<Cube, vector<Cube>, ReverseOrder> PQone;
 	Cube alpha;
@@ -1863,7 +1866,7 @@ void MorseComplex::processLowerStarsWithoutPerturbationBetween(const index_t& xM
 	index_t zBound = min(zMax, shape[2]);
 
 	vector<vector<Cube>> lowerStars;
-	getLowerStarsWithoutPerturbationBetween(lowerStars, xMin, xBound, yMin, yBound, zMin, zBound);
+	getLowerStarsWithoutPerturbationBetween(lowerStars, xMin, xBound, yMin, yBound, zMin, zBound, threshold);
 
 	for (index_t x = xMin; x < xBound; ++x) {
 		for (index_t y = yMin; y < yBound; ++y) {
@@ -1872,11 +1875,13 @@ void MorseComplex::processLowerStarsWithoutPerturbationBetween(const index_t& xM
 
 				vector<Cube>& L = lowerStars[hashVoxel(vector<index_t> {x,y,z})];
 
-				if (L.size() == 0) { insertToC(Cube(*this, x, y, z, 0, 0)); }
+				if (L.size() == 0) { 
+					pairs.push_back(make_pair(Cube(*this, x, y, z, 0, 0), Cube(*this, x, y, z, 0, 0)));
+					}
 				else {
 					sort(L.begin(), L.end());
 					alpha = L[0];
-					insertToV(Cube(*this, x, y, z, 0, 0), alpha);
+					pairs.push_back(make_pair(Cube(*this, x, y, z, 0, 0), alpha));
 					L.erase(L.begin(), L.begin()+1);
 					
 					for (const Cube& beta : L) {
@@ -1890,7 +1895,7 @@ void MorseComplex::processLowerStarsWithoutPerturbationBetween(const index_t& xM
 							if (numUnpairedFaces(alpha, L) == 0) { PQzero.push(alpha); }
 							else {	
 								pair = getUnpairedFace(alpha, L);
-								insertToV(pair, alpha);
+								pairs.push_back(make_pair(pair, alpha));
 								removeFromPQ(pair, PQzero);
 								L.erase(remove(L.begin(), L.end(), pair), L.end());
 								L.erase(remove(L.begin(), L.end(), alpha), L.end());
@@ -1904,7 +1909,7 @@ void MorseComplex::processLowerStarsWithoutPerturbationBetween(const index_t& xM
 						if (!PQzero.empty()) {
 							alpha = PQzero.top();
 							PQzero.pop();
-							insertToC(alpha);
+							pairs.push_back(make_pair(alpha, alpha));
 							L.erase(remove(L.begin(), L.end(), alpha), L.end());
 							for (const Cube& beta : L) {
 								if (alpha.isFaceOf(beta) && numUnpairedFaces(beta, L) == 1) { PQone.push(beta); }
@@ -1915,7 +1920,77 @@ void MorseComplex::processLowerStarsWithoutPerturbationBetween(const index_t& xM
 			}
 		}
 	}
+
+	return pairs;
 }
+
+
+// void MorseComplex::processLowerStarsWithoutPerturbationBetween(const index_t& xMin, const index_t& xMax, const index_t& yMin, 
+// 																const index_t& yMax, const index_t& zMin, const index_t& zMax,
+// 																const value_t& threshold) {
+// 	priority_queue<Cube, vector<Cube>, ReverseOrder> PQzero;
+// 	priority_queue<Cube, vector<Cube>, ReverseOrder> PQone;
+// 	Cube alpha;
+// 	Cube pair;
+
+// 	index_t xBound = min(xMax, shape[0]);
+// 	index_t yBound = min(yMax, shape[1]);
+// 	index_t zBound = min(zMax, shape[2]);
+
+// 	vector<vector<Cube>> lowerStars;
+// 	getLowerStarsWithoutPerturbationBetween(lowerStars, xMin, xBound, yMin, yBound, zMin, zBound, threshold);
+
+// 	for (index_t x = xMin; x < xBound; ++x) {
+// 		for (index_t y = yMin; y < yBound; ++y) {
+// 			for (index_t z = zMin; z < zBound; ++z) {
+// 				if (getValue(x, y, z) > threshold) { continue; }
+
+// 				vector<Cube>& L = lowerStars[hashVoxel(vector<index_t> {x,y,z})];
+
+// 				if (L.size() == 0) { insertToC(Cube(*this, x, y, z, 0, 0)); }
+// 				else {
+// 					sort(L.begin(), L.end());
+// 					alpha = L[0];
+// 					insertToV(Cube(*this, x, y, z, 0, 0), alpha);
+// 					L.erase(L.begin(), L.begin()+1);
+					
+// 					for (const Cube& beta : L) {
+// 						if (beta.dim == 1) { PQzero.push(beta); }
+// 						else if (alpha.isFaceOf(beta) && numUnpairedFaces(beta, L) == 1) { PQone.push(beta); }
+// 					}
+
+// 					while(!PQzero.empty() || !PQone.empty()) {
+// 						while(!PQone.empty()) {
+// 							alpha = PQone.top(); PQone.pop();
+// 							if (numUnpairedFaces(alpha, L) == 0) { PQzero.push(alpha); }
+// 							else {	
+// 								pair = getUnpairedFace(alpha, L);
+// 								insertToV(pair, alpha);
+// 								removeFromPQ(pair, PQzero);
+// 								L.erase(remove(L.begin(), L.end(), pair), L.end());
+// 								L.erase(remove(L.begin(), L.end(), alpha), L.end());
+// 								for (const Cube& beta : L) {
+// 									if ((alpha.isFaceOf(beta) || pair.isFaceOf(beta)) && numUnpairedFaces(beta, L) == 1) {
+// 										PQone.push(beta);
+// 									}
+// 								}
+// 							}
+// 						}
+// 						if (!PQzero.empty()) {
+// 							alpha = PQzero.top();
+// 							PQzero.pop();
+// 							insertToC(alpha);
+// 							L.erase(remove(L.begin(), L.end(), alpha), L.end());
+// 							for (const Cube& beta : L) {
+// 								if (alpha.isFaceOf(beta) && numUnpairedFaces(beta, L) == 1) { PQone.push(beta); }
+// 							}
+// 						}
+// 					}
+// 				}
+// 			}
+// 		}
+// 	}
+// }
 
 
 void MorseComplex::processLowerStarsWithPerturbationParallel(const index_t& xPatch, const index_t& yPatch, const index_t& zPatch,
@@ -1964,14 +2039,11 @@ void MorseComplex::processLowerStarsWithoutPerturbationParallel(const index_t& x
 		return;
 	}
 
-	vector<vector<Cube>> lowerStars;
-	getLowerStarsWithoutPerturbation(lowerStars);
-
 	index_t batchX = shape[0]/xPatch + 1;
 	index_t batchY = shape[1]/yPatch + 1;
 	index_t batchZ = shape[2]/zPatch + 1;
 
-	vector<std::future<void>> futures;
+	vector<std::future<vector<pair<Cube,Cube>>>> futures;
 
 	for (index_t x = 0; x < xPatch; ++x) {
 		for (index_t y = 0; y < yPatch; ++y) {
@@ -1989,11 +2061,51 @@ void MorseComplex::processLowerStarsWithoutPerturbationParallel(const index_t& x
 	}
 
 	for (auto& future : futures) {
-        future.wait();
+        vector<pair<Cube,Cube>> pairs = future.get();
+		for (pair<Cube,Cube>& p : pairs) {
+			if (p.first == p.second) { C[p.first.dim].push_back(p.first); }
+			else { V.emplace(p.first, p.second); coV.emplace(p.second, p.first); }
+		}
     }
 
 	processedLowerStars = true;
 }
+
+
+// void MorseComplex::processLowerStarsWithoutPerturbationParallel(const index_t& xPatch, const index_t& yPatch, const index_t& zPatch,
+// 																const value_t& threshold) {
+// 	if (processedLowerStars) {
+// 		cerr << "Lower stars already processed!" << endl;
+// 		return;
+// 	}
+
+// 	index_t batchX = shape[0]/xPatch + 1;
+// 	index_t batchY = shape[1]/yPatch + 1;
+// 	index_t batchZ = shape[2]/zPatch + 1;
+
+// 	vector<std::future<void>> futures;
+
+// 	for (index_t x = 0; x < xPatch; ++x) {
+// 		for (index_t y = 0; y < yPatch; ++y) {
+// 			for (index_t z = 0; z < zPatch; ++z) {
+// 				index_t xMin = x * batchX;
+// 				index_t xMax = xMin + batchX;
+// 				index_t yMin = y * batchY;
+// 				index_t yMax = yMin + batchY;
+// 				index_t zMin = z * batchZ;
+// 				index_t zMax = zMin + batchZ;
+// 				futures.push_back(async(launch::async, &MorseComplex::processLowerStarsWithoutPerturbationBetween,
+// 									this, xMin, xMax, yMin, yMax, zMin, zMax, threshold));
+// 			}
+// 		}
+// 	}
+
+// 	for (auto& future : futures) {
+//         future.wait();
+//     }
+
+// 	processedLowerStars = true;
+// }
 
 
 void MorseComplex::traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated) const {
