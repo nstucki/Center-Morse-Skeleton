@@ -284,6 +284,35 @@ void MorseComplex::processLowerStars(const value_t& threshold, const index_t& xP
 }
 
 
+void MorseComplex::cancelPairByIndex(const uint8_t& dimS, const size_t& indexS, const uint8_t& dimT, const size_t& indexT) {
+	Cube& s = C[dimS][indexS];
+	Cube& t = C[dimT][indexT];
+	vector<tuple<Cube, Cube, Cube>> connection;
+	getConnections(s, t, connection);
+
+	C[s.dim].erase(remove(C[s.dim].begin(), C[s.dim].end(), s), C[s.dim].end());
+	C[t.dim].erase(remove(C[t.dim].begin(), C[t.dim].end(), t), C[t.dim].end());
+
+	for (tuple<Cube, Cube, Cube> con : connection) {
+		if (get<1>(con) != get<2>(con)) {
+#ifdef USE_CUBE_MAP
+			V.erase(get<1>(con));
+			coV.erase(get<2>(con));
+#else
+			auto it = V.find(get<1>(con));
+			if (it != V.end()) { V.erase(it); }
+			else { cerr << "Error: key not found!" << endl; exit(EXIT_FAILURE); }
+			it = coV.find(get<2>(con));
+			if (it != coV.end()) { coV.erase(it); }
+			else { cerr << "Error: key not found!" << endl; exit(EXIT_FAILURE);}
+#endif
+		}
+		V.emplace(get<1>(con), get<0>(con));
+		coV.emplace(get<0>(con), get<1>(con));
+	}
+}
+
+
 void MorseComplex::cancelPairsBelow(const value_t& threshold, string orderDim, string orderValue, bool print) {
 	if (print) { 
 		cout << endl << "Canceling pairs < " << threshold << endl;
