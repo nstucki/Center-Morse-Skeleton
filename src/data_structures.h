@@ -154,21 +154,20 @@ public:
 	void cancelPairsBelow(const value_t& threshold=INFTY, string orderDim=">", string orderValue=">", bool print=true);
 	void cancelPairsBelowInDim(const uint8_t& dim, const value_t& threshold=INFTY, string orderValue=">", bool print=true);
 	void cancelPairsAbove(const value_t& threshold=INFTY, string orderDim=">", string orderValue=">", bool print=true);
-	void cancelLowPersistencePairsBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, bool print=true);
-	void cancelLowPersistencePairsInDimBelow(const uint8_t& dim, const value_t& threshold=INFTY, const value_t& epsilon=0, bool print=true);
+	void cancelLowPersistencePairsBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, const vector<uint8_t>& dimensions={1,2,3});
+	void cancelLowPersistencePairsBelowInDim(const uint8_t& dim, const value_t& threshold=INFTY, const value_t& epsilon=0);
 	void cancelClosePairsBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, bool print=true);
-	void cancelBoundaryPairsBelow(const value_t& threshold=INFTY, const value_t& delta=0, bool print=true);
+	void cancelBoundaryPairsBelow(const value_t& threshold=INFTY, const value_t& delta=0, const vector<uint8_t>& dimensions={1,2,3});
 
-	void prepareMorseSkeletonBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, const value_t& delta=-1, bool print=true);
 	void prepareMorseSkeletonTestBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, const value_t& delta=-1, bool print=true);
 	void prepareMorseSkeletonAbove(const value_t& threshold=INFTY, const value_t& tolerance=0, bool print=true);
 
 	void extractMorseSkeletonBelow(const value_t& threshold=INFTY, const uint8_t& dimension=3);
 	void extractMorseSkeletonParallelBelow(const value_t& threshold=INFTY, const uint8_t& dimension=3);
-	void extractMorseSkeletonBatchwiseBelow(const value_t& threshold=INFTY, const uint8_t& dimension=3, const size_t& batches=1);
+	void extractMorseSkeletonBatchwiseBelow(const value_t& threshold=INFTY, const uint8_t& dimension=3, const size_t& batches=128);
 	void extractMorseSkeletonAbove(const value_t& threshold=INFTY);
 
-	void prepareAndExtractMorseSkeletonBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, const vector<uint8_t>& dimensions={1,2,3});
+	void prepareAndExtractMorseSkeletonBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, const vector<uint8_t>& dimensions={1,2,3}, const size_t& batches=128);
 
 	vector<pair<Cube, uint8_t>> getMorseBoundary(const Cube& s) const;
 	vector<pair<Cube, uint8_t>> getMorseCoboundary(const Cube& s) const;
@@ -205,6 +204,8 @@ private:
 	Cube getUnpairedFace(const Cube& cube, const vector<Cube>& L) const;
 	void insertToC(const Cube& cube);
 	void insertToV(const Cube& cube0, const Cube& cube1);
+	void insertToSkeletonBelow(const vector<tuple<index_t,index_t,index_t>>& voxels);
+	void insertToSkeletonAbove(const vector<tuple<index_t,index_t,index_t>>& voxels);
 	void processLowerStarsWithPerturbation(const value_t& threshold);
 	void processLowerStarsWithoutPerturbation(const value_t& threshold);
 	void processLowerStarsBetween(const index_t& xMin, const index_t& xMax, const index_t& yMin, const index_t& yMax,
@@ -219,8 +220,8 @@ private:
 	void traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
 	void traverseCoflow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
 	void getConnections(const Cube&s, const Cube& t, vector<tuple<Cube, Cube, Cube>>& connections) const;
-	vector<tuple<index_t,index_t,index_t>> extractMorseSkeletonInDimBelow(const uint8_t& dim, const value_t& threshold=INFTY);
-	vector<tuple<index_t,index_t,index_t>> extractMorseSkeletonOfBatchInDimBelow(const uint8_t& dim, const size_t& start, const size_t& end, const value_t& threshold=INFTY);
+	void extractMorseSkeletonInDimBelow(const uint8_t& dim, const value_t& threshold=INFTY);
+	void extractMorseSkeletonOfBatchInDimBelow(const uint8_t& dim, const size_t& start, const size_t& end, const value_t& threshold=INFTY);
 	void cancelPair(const Cube&s, const Cube& t);
 	const vector<index_t> shape;
 	index_t mYZ = shape[1]*shape[2];
@@ -238,8 +239,7 @@ private:
 #endif
 	mutable std::mutex mutexC;
 	mutable std::mutex mutexV;
-	set<Cube> morseSkeletonBelow;
-	set<Cube> morseSkeletonAbove;
-	vector<tuple<index_t,index_t,index_t>> morseSkeletonVoxelsBelow;
-	vector<tuple<index_t,index_t,index_t>> morseSkeletonVoxelsAbove;
+	mutable std::mutex mutexS;
+	vector<tuple<index_t,index_t,index_t>> skeletonBelow;
+	vector<tuple<index_t,index_t,index_t>> skeletonAbove;
 };

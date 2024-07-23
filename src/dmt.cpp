@@ -51,17 +51,12 @@ PYBIND11_MODULE(morse_complex, m) {
         .def("cancel_pairs_above", &MorseComplex::cancelPairsAbove, py::arg("threshold")=INFTY, py::arg("order_dim")=">", 
                                                                     py::arg("order_value")=">", py::arg("print")=true)
 
-        .def("cancel_low_persistence_pairs_below", &MorseComplex::cancelLowPersistencePairsBelow, py::arg("threshold")=INFTY, py::arg("delta")=0,
-                                                                                                    py::arg("print")=true)
+        .def("cancel_low_persistence_pairs_below", &MorseComplex::cancelLowPersistencePairsBelow, py::arg("threshold")=INFTY, py::arg("epsilon")=0, py::arg("dimensions")=vector<uint8_t>{1,2,3})
 
         .def("cancel_close_pairs_below", &MorseComplex::cancelClosePairsBelow, py::arg("threshold")=INFTY, py::arg("delta")=0,
                                                                                 py::arg("print")=true)
 
-        .def("cancel_boundary_pairs_below", &MorseComplex::cancelBoundaryPairsBelow, py::arg("threshold")=INFTY, py::arg("delta")=0,
-                                                                                        py::arg("print")=true)
-
-        .def("prepare_morse_skeleton_below", &MorseComplex::prepareMorseSkeletonBelow, py::arg("threshold")=INFTY, py::arg("epsilon")=0,
-                                                                                        py::arg("delta")=-1, py::arg("print")=true)
+        .def("cancel_boundary_pairs_below", &MorseComplex::cancelBoundaryPairsBelow, py::arg("threshold")=INFTY, py::arg("delta")=0, py::arg("dimensions")=vector<uint8_t>{1,2,3})
 
         .def("prepare_morse_skeleton_test_below", &MorseComplex::prepareMorseSkeletonTestBelow, py::arg("threshold")=INFTY, py::arg("epsilon")=0,
                                                                                                 py::arg("delta")=-1, py::arg("print")=true)
@@ -78,7 +73,7 @@ PYBIND11_MODULE(morse_complex, m) {
         .def("extract_morse_skeleton_above", &MorseComplex::extractMorseSkeletonAbove, py::arg("threshold")=INFTY)
 
         .def("prepare_and_extract_morse_skeleton_below", &MorseComplex::prepareAndExtractMorseSkeletonBelow, 
-                                                            py::arg("threshold")=INFTY, py::arg("epsilon")=0, py::arg("dimensions"))
+                                                            py::arg("threshold")=INFTY, py::arg("epsilon")=0, py::arg("dimensions")=vector<uint8_t>{1,2,3}, py::arg("batches")=128)
 
         .def("get_morse_skeleton_below", &MorseComplex::getMorseSkeletonVoxelsBelow)
 
