@@ -28,7 +28,7 @@ public:
 	bool operator==(const Cube& rhs) const;
 	bool operator!=(const Cube& rhs) const;
 	bool operator<(const Cube& rhs) const;
-	vector<vector<index_t>> getVertices() const;
+	vector<tuple<index_t,index_t,index_t>> getVertices() const;
 	bool isFaceOf(const Cube& other) const;
 	void print() const;
 	value_t birth;
@@ -173,8 +173,8 @@ public:
 	vector<pair<Cube, uint8_t>> getMorseBoundary(const Cube& s) const;
 	vector<pair<Cube, uint8_t>> getMorseCoboundary(const Cube& s) const;
 
-	vector<vector<index_t>> getMorseSkeletonVoxelsBelow() const;
-	vector<vector<index_t>> getMorseSkeletonVoxelsAbove() const;
+	vector<tuple<index_t,index_t,index_t>> getMorseSkeletonVoxelsBelow() const;
+	vector<tuple<index_t,index_t,index_t>> getMorseSkeletonVoxelsAbove() const;
 
 	value_t getPerturbation() const;
 	vector<vector<Cube>> getCriticalCells() const;
@@ -219,8 +219,8 @@ private:
 	void traverseFlow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
 	void traverseCoflow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
 	void getConnections(const Cube&s, const Cube& t, vector<tuple<Cube, Cube, Cube>>& connections) const;
-	set<vector<index_t>> extractMorseSkeletonInDimBelow(const uint8_t& dim, const value_t& threshold=INFTY);
-	set<vector<index_t>> extractMorseSkeletonOfBatchInDimBelow(const uint8_t& dim, const size_t& start, const size_t& end, const value_t& threshold=INFTY);
+	vector<tuple<index_t,index_t,index_t>> extractMorseSkeletonInDimBelow(const uint8_t& dim, const value_t& threshold=INFTY);
+	vector<tuple<index_t,index_t,index_t>> extractMorseSkeletonOfBatchInDimBelow(const uint8_t& dim, const size_t& start, const size_t& end, const value_t& threshold=INFTY);
 	void cancelPair(const Cube&s, const Cube& t);
 	const vector<index_t> shape;
 	index_t mYZ = shape[1]*shape[2];
@@ -240,6 +240,6 @@ private:
 	mutable std::mutex mutexV;
 	set<Cube> morseSkeletonBelow;
 	set<Cube> morseSkeletonAbove;
-	set<vector<index_t>> morseSkeletonVoxelsBelow;
-	set<vector<index_t>> morseSkeletonVoxelsAbove;
+	vector<tuple<index_t,index_t,index_t>> morseSkeletonVoxelsBelow;
+	vector<tuple<index_t,index_t,index_t>> morseSkeletonVoxelsAbove;
 };
