@@ -679,7 +679,7 @@ void MorseComplex::cancelBoundaryPairsBelow(const value_t& threshold, const valu
 
 			vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
 			for (const pair<Cube, uint8_t> b : boundary) {
-				if (get<1>(b) == 1 && get<0>(b).birth < threshold - delta) {
+				if (get<1>(b) == 1 && get<0>(b).birth >= threshold - delta) {
 					cancelPair(s, get<0>(b));
 					break;
 				}
