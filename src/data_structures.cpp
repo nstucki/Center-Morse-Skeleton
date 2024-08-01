@@ -63,8 +63,8 @@ bool Cube::operator<(const Cube& rhs) const {
 }
 
 
-vector<tuple<index_t,index_t,index_t>> Cube::getVertices() const {
-	vector<tuple<index_t,index_t,index_t>> vertices = {make_tuple(x, y, z)};
+vector<vector<index_t>> Cube::getVertices() const {
+	vector<vector<index_t>> vertices = {{x, y, z}};
 	switch(dim) {
 		case 0:
 			return vertices;
@@ -72,47 +72,47 @@ vector<tuple<index_t,index_t,index_t>> Cube::getVertices() const {
 		case 1:
 			switch(type) {
 				case 0:
-					vertices.push_back(make_tuple(x+1, y, z));
+					vertices.push_back({x+1, y, z});
 					return vertices;
 
 				case 1:
-					vertices.push_back(make_tuple(x, y+1, z));
+					vertices.push_back({x, y+1, z});
 					return vertices;
 
 				case 2:
-					vertices.push_back(make_tuple(x, y, z+1));
+					vertices.push_back({x, y, z+1});
 					return vertices;
 			}
 
 		case 2:
 			switch(type) {
 				case 0:
-					vertices.push_back(make_tuple(x, y+1, z));
-					vertices.push_back(make_tuple(x, y, z+1));
-					vertices.push_back(make_tuple(x, y+1, z+1));
+					vertices.push_back({x, y+1, z});
+					vertices.push_back({x, y, z+1});
+					vertices.push_back({x, y+1, z+1});
 					return vertices;
 
 				case 1:
-					vertices.push_back(make_tuple(x+1, y, z));
-					vertices.push_back(make_tuple(x, y, z+1));
-					vertices.push_back(make_tuple(x+1, y, z+1));
+					vertices.push_back({x+1, y, z});
+					vertices.push_back({x, y, z+1});
+					vertices.push_back({x+1, y, z+1});
 					return vertices;
 
 				case 2:
-					vertices.push_back(make_tuple(x+1, y, z));
-					vertices.push_back(make_tuple(x, y+1, z));
-					vertices.push_back(make_tuple(x+1, y+1, z));
+					vertices.push_back({x+1, y, z});
+					vertices.push_back({x, y+1, z});
+					vertices.push_back({x+1, y+1, z});
 					return vertices;
 			}
 
 		case 3:
-			vertices.push_back(make_tuple(x+1, y, z));
-			vertices.push_back(make_tuple(x, y+1, z));
-			vertices.push_back(make_tuple(x, y, z+1));
-			vertices.push_back(make_tuple(x+1, y+1, z));
-			vertices.push_back(make_tuple(x+1, y, z+1));
-			vertices.push_back(make_tuple(x, y+1, z+1));
-			vertices.push_back(make_tuple(x+1, y+1, z+1));
+			vertices.push_back({x+1, y, z});
+			vertices.push_back({x, y+1, z});
+			vertices.push_back({x, y, z+1});
+			vertices.push_back({x+1, y+1, z});
+			vertices.push_back({x+1, y, z+1});
+			vertices.push_back({x, y+1, z+1});
+			vertices.push_back({x+1, y+1, z+1});
 			return vertices;
 	}
 
@@ -123,9 +123,9 @@ vector<tuple<index_t,index_t,index_t>> Cube::getVertices() const {
 bool Cube::isFaceOf(const Cube& other) const {
 	if (dim > other.dim-1) { return false; }
 
-	vector<tuple<index_t,index_t,index_t>> vertices = getVertices();
-	vector<tuple<index_t,index_t,index_t>> verticesOther = other.getVertices();
-	for (tuple<index_t,index_t,index_t>& vertex : vertices) {
+	vector<vector<index_t>> vertices = getVertices();
+	vector<vector<index_t>> verticesOther = other.getVertices();
+	for (vector<index_t>& vertex : vertices) {
 		if (find(verticesOther.begin(), verticesOther.end(), vertex) == verticesOther.end()) { 
 			return false;
 		}
@@ -281,6 +281,11 @@ void MorseComplex::processLowerStars(const value_t& threshold, const index_t& xP
 		if (xPatch == 1 && yPatch == 1 && zPatch == 1) { processLowerStarsWithPerturbation(threshold); }
 		else { processLowerStarsWithPerturbationParallel(xPatch, yPatch, zPatch, threshold); }
 	}
+}
+
+
+void MorseComplex::sortCriticalCells(const vector<uint8_t>& dimensions) {
+	for (const uint8_t& dim : dimensions) { sort(C[dim].begin(), C[dim].end()); }
 }
 
 
@@ -559,40 +564,68 @@ void MorseComplex::cancelPairsAbove(const value_t& threshold, string orderDim, s
 	}	
 }
 
+void MorseComplex::cancelAllPairsBelow(const value_t& threshold, const vector<uint8_t>& dimensions) {
+	if (threshold == -INFTY) { return; }
 
-void MorseComplex::cancelLowPersistencePairsBelow(const value_t& threshold, const value_t& epsilon, const vector<uint8_t>& dimensions) {
-	if (threshold == -INFTY || epsilon < 0) { return; }
-
+	vector<Cube> cancelable;
 	for (uint8_t dim : dimensions) {	
 		for (auto it = C[dim].rbegin(); it != C[dim].rend(); ++it) {
 			Cube s = *it;
 			if (s.birth >= threshold) { continue; }
 
 			vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
+			cancelable.clear();
 			for (const pair<Cube, uint8_t> b : boundary) {
-				if (get<1>(b) == 1 && s.birth - get<0>(b).birth <= epsilon) {
-					cancelPair(s, get<0>(b));
-					break;
-				}
+				if (get<1>(b) == 1) { cancelable.push_back(get<0>(b)); }
 			}
+			if (cancelable.size() == 0) { continue; }
+
+			sort(cancelable.begin(), cancelable.end());
+			cancelPair(s, cancelable.back());
 		}
 	}
 }
 
 
-void MorseComplex::cancelLowPersistencePairsBelowInDim(const uint8_t& dim, const value_t& threshold, const value_t& epsilon) {
+void MorseComplex::cancelLowPersistencePairsBelow(const value_t& threshold, const value_t& epsilon, const vector<uint8_t>& dimensions) {
 	if (threshold == -INFTY || epsilon < 0) { return; }
 
-	for (auto it = C[dim].rbegin(); it != C[dim].rend(); ++it) {
-		Cube s = *it;
-		if (s.birth >= threshold) { continue; }
+	vector<Cube> cancelable;
+	for (uint8_t dim : dimensions) {	
+		for (auto it = C[dim].rbegin(); it != C[dim].rend(); ++it) {
+			Cube s = *it;
+			if (s.birth >= threshold) { continue; }
 
-		vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
-		for (const pair<Cube, uint8_t> b : boundary) {
-			if (get<1>(b) == 1 && s.birth - get<0>(b).birth <= epsilon) { 
-				cancelPair(s, get<0>(b));
-				break;
+			vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
+			cancelable.clear();
+			for (const pair<Cube, uint8_t> b : boundary) {
+				if (get<1>(b) == 1 && s.birth - get<0>(b).birth <= epsilon) { cancelable.push_back(get<0>(b)); }
 			}
+			if (cancelable.size() == 0) { continue; }
+			sort(cancelable.begin(), cancelable.end());
+			cancelPair(s, cancelable.back());
+		}
+	}
+}
+
+
+void MorseComplex::cancelBoundaryPairsBelow(const value_t& threshold, const value_t& delta, const vector<uint8_t>& dimensions) {
+	if (threshold == -INFTY || delta < 0) { return; }
+
+	vector<Cube> cancelable;
+	for (uint8_t dim : dimensions) {
+		for (auto it = C[dim].rbegin(); it != C[dim].rend(); ++it) {
+			Cube s = *it;
+			if (s.birth >= threshold || s.birth < threshold - delta) { continue; }
+
+			vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
+			cancelable.clear();
+			for (const pair<Cube, uint8_t> b : boundary) {
+				if (get<1>(b) == 1 && get<0>(b).birth >= threshold - delta) { cancelable.push_back(get<0>(b)); }
+			}
+			if (cancelable.size() == 0) { continue; }
+			sort(cancelable.begin(), cancelable.end());
+			cancelPair(s, cancelable.back());
 		}
 	}
 }
@@ -669,137 +702,6 @@ void MorseComplex::cancelClosePairsBelow(const value_t& threshold, const value_t
 }
 
 
-void MorseComplex::cancelBoundaryPairsBelow(const value_t& threshold, const value_t& delta, const vector<uint8_t>& dimensions) {
-	if (threshold == -INFTY || delta < 0) { return; }
-
-	for (uint8_t dim : dimensions) {
-		for (auto it = C[dim].rbegin(); it != C[dim].rend(); ++it) {
-			Cube s = *it;
-			if (s.birth >= threshold || s.birth < threshold - delta) { continue; }
-
-			vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
-			for (const pair<Cube, uint8_t> b : boundary) {
-				if (get<1>(b) == 1 && get<0>(b).birth >= threshold - delta) {
-					cancelPair(s, get<0>(b));
-					break;
-				}
-			}
-		}
-	}
-}
-
-
-void MorseComplex::prepareMorseSkeletonTestBelow(const value_t& threshold, const value_t& epsilon, const value_t& delta, 
-													bool print) {
-	if (print) {
-		cout << "Critical cells:" << endl;
-		printNumberOfCriticalCells(threshold);
-	}
-
-	if (threshold == -INFTY) {
-		if (print) { cout << endl << endl; }
-		return;
-	}
-
-	vector<Cube> cancelable;
-	for (uint8_t dim = 4; dim-- > 1;) {
-		sort(C[dim].begin(), C[dim].end());
-
-		bool canceled = true;
-		while (canceled) {
-			canceled = false;
-			for (auto it = C[dim].rbegin(); it != C[dim].rend(); ++it) {
-				Cube s = *it;
-				if (s.birth >= threshold) { continue; }
-
-				vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
-				cancelable.clear();
-				for (const pair<Cube, uint8_t> b : boundary) {
-					if (get<1>(b) == 1) { cancelable.push_back(get<0>(b)); }
-				}
-				if (cancelable.size() == 0) { continue; }
-
-				sort(cancelable.begin(), cancelable.end());
-				Cube t = cancelable.back();
-				if (t.birth < threshold - delta && s.birth-t.birth > epsilon) { continue; }
-
-				cancelPair(s, t);
-				canceled = true;
-
-				if (print) { printNumberOfCriticalCells(threshold); }
-				break;
-			}
-		}
-	}
-	if (print) { cout << endl; }
-}
-
-
-void MorseComplex::prepareMorseSkeletonAbove(const value_t& threshold, const value_t& tolerance, bool print) {
-	if (print) {
-		cout << "Critical cells:" << endl;
-		printNumberOfCriticalCells(threshold);
-	}
-
-	if (threshold == INFTY) {
-		if (print) { cout << endl << endl; }
-		return;
-	}
-
-	for (uint8_t dim = 0; dim < 4; ++dim) { sort(C[dim].begin(), C[dim].end()); }
-
-	bool canceled = true;
-	vector<Cube> cancelable;
-	while (canceled) {
-		canceled = false;
-		for (uint8_t dim = 0; dim < 2; ++dim) {
-			for (const Cube& t : C[dim]) {
-				if (t.birth < threshold) { continue; }
-
-				vector<pair<Cube, uint8_t>> coboundary = getMorseCoboundary(t);
-
-				cancelable.clear();
-				for (const pair<Cube, uint8_t> c : coboundary) {
-					if (get<1>(c) == 1) { cancelable.push_back(get<0>(c)); }
-				}
-				if (cancelable.size() == 0) { continue; }
-				sort(cancelable.begin(), cancelable.end());
-
-				cancelPair(cancelable.front(), t);
-				canceled = true;
-
-				if (print) { printNumberOfCriticalCells(threshold); }
-				break;
-			}
-			if (canceled) { break; }
-		}
-
-		if (tolerance != 0) {
-			for (const Cube& s : C[3]) {
-				if (s.birth < threshold || s.birth >= threshold + tolerance) { continue; }
-
-				vector<pair<Cube, uint8_t>> boundary = getMorseBoundary(s);
-
-				cancelable.clear();
-				for (const pair<Cube, uint8_t> b : boundary) {
-					if (get<1>(b) == 1) { cancelable.push_back(get<0>(b)); }
-				}
-				if (cancelable.size() == 0) { continue; }
-				sort(cancelable.begin(), cancelable.end());
-				if (cancelable.back().birth < threshold) { continue; }
-
-				cancelPair(s, cancelable.back());
-				canceled = true;
-
-				if (print) { printNumberOfCriticalCells(threshold); }
-				break;
-			}
-		}
-	}
-	if (print) { cout << endl << endl; }
-}
-
-
 void MorseComplex::extractMorseSkeletonBelow(const value_t& threshold, const uint8_t& dimension) {
 	skeletonBelow.clear();
 	
@@ -857,61 +759,6 @@ void MorseComplex::extractMorseSkeletonBatchwiseBelow(const value_t& threshold, 
 	for (auto& future : futures) {
 		future.wait();
 	}
-}
-
-
-void MorseComplex::prepareAndExtractMorseSkeletonBelow(const value_t& threshold, const value_t& epsilon, const vector<uint8_t>& dimensions, const size_t& batches) {
-	skeletonBelow.clear();
-
-	vector<std::future<void>> futures;
-	if(find(dimensions.begin(), dimensions.end(), 3) != dimensions.end()) {
-		futures.push_back(async(launch::async, &MorseComplex::cancelLowPersistencePairsBelowInDim,
-								this, 3, threshold, epsilon));
-	}
-	if(find(dimensions.begin(), dimensions.end(), 1) != dimensions.end()) {
-		futures.push_back(async(launch::async, &MorseComplex::cancelLowPersistencePairsBelowInDim,
-								this, 1, threshold, epsilon));
-	}
-	for (auto& future : futures) {
-        future.wait();
-    }
-
-	futures.clear();
-	if(find(dimensions.begin(), dimensions.end(), 2) != dimensions.end()) {
-		futures.push_back(async(launch::async, &MorseComplex::cancelLowPersistencePairsBelowInDim,
-								this, 2, threshold, epsilon));
-	}
-	size_t start;
-	size_t end;
-	for (uint8_t dim : {0,3}) {
-		size_t batchSize = C[dim].size()/batches + 1;
-		start = 0;
-		end = batchSize;
-		for (size_t batch = 0; batch < batches; ++batch) {
-			futures.push_back(async(launch::async, &MorseComplex::extractMorseSkeletonOfBatchInDimBelow,
-								this, dim, start, end, threshold));
-			start = end;
-			end += batchSize;
-		}
-	}
-	if(find(dimensions.begin(), dimensions.end(), 2) != dimensions.end()) {
-		futures[0].wait();
-	}
-
-	for (uint8_t dim : {1,2}) {
-		size_t batchSize = C[dim].size()/batches + 1;
-		start = 0;
-		end = batchSize;
-		for (size_t batch = 0; batch < batches; ++batch) {
-			futures.push_back(async(launch::async, &MorseComplex::extractMorseSkeletonOfBatchInDimBelow,
-								this, dim, start, end, threshold));
-			start = end;
-			end += batchSize;
-		}
-	}
-	for (auto& future : futures) {
-        future.wait();
-    }
 }
 
 
@@ -1021,10 +868,10 @@ vector<pair<Cube, uint8_t>> MorseComplex::getMorseCoboundary(const Cube& s) cons
 }
 
 
-vector<tuple<index_t,index_t,index_t>> MorseComplex::getMorseSkeletonVoxelsBelow() const { return skeletonBelow; }
+vector<vector<index_t>> MorseComplex::getLowerMorseSkeleton() const { return skeletonBelow; }
 
 
-vector<tuple<index_t,index_t,index_t>> MorseComplex::getMorseSkeletonVoxelsAbove() const { return skeletonAbove; }
+vector<vector<index_t>> MorseComplex::getUpperMorseSkeleton() const { return skeletonAbove; }
 
 
 value_t MorseComplex::getPerturbation() const { return perturbation; }
@@ -1551,12 +1398,12 @@ void MorseComplex::insertToV(const Cube& cube0, const Cube& cube1) {
 }
 
 
-void MorseComplex::insertToSkeletonBelow(const vector<tuple<index_t,index_t,index_t>>& voxels) {
+void MorseComplex::insertToSkeletonBelow(const vector<vector<index_t>>& voxels) {
 	lock_guard<std::mutex> lock(mutexS);
 	skeletonBelow.insert(skeletonBelow.end(), voxels.begin(), voxels.end());
 }
 
-void MorseComplex::insertToSkeletonAbove(const vector<tuple<index_t,index_t,index_t>>& voxels) {
+void MorseComplex::insertToSkeletonAbove(const vector<vector<index_t>>& voxels) {
 	lock_guard<std::mutex> lock(mutexS);
 	skeletonAbove.insert(skeletonAbove.end(), voxels.begin(), voxels.end());
 }

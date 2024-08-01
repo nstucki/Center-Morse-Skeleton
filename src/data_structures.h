@@ -28,7 +28,7 @@ public:
 	bool operator==(const Cube& rhs) const;
 	bool operator!=(const Cube& rhs) const;
 	bool operator<(const Cube& rhs) const;
-	vector<tuple<index_t,index_t,index_t>> getVertices() const;
+	vector<vector<index_t>> getVertices() const;
 	bool isFaceOf(const Cube& other) const;
 	void print() const;
 	value_t birth;
@@ -149,31 +149,27 @@ public:
 	void perturbImageMinimal();
 
 	void processLowerStars(const value_t& threshold=INFTY, const index_t& xPatch=1, const index_t& yPatch=1, const index_t& zPatch=1);
+	void sortCriticalCells(const vector<uint8_t>& dimensions={0,1,2,3});
 
 	void cancelPairByIndex(const uint8_t& dimS, const size_t& indexS, const uint8_t& dimT, const size_t& indexT);
 	void cancelPairsBelow(const value_t& threshold=INFTY, string orderDim=">", string orderValue=">", bool print=true);
 	void cancelPairsBelowInDim(const uint8_t& dim, const value_t& threshold=INFTY, string orderValue=">", bool print=true);
 	void cancelPairsAbove(const value_t& threshold=INFTY, string orderDim=">", string orderValue=">", bool print=true);
+	void cancelAllPairsBelow(const value_t& threshold=INFTY, const vector<uint8_t>& dimensions={1,2,3});
 	void cancelLowPersistencePairsBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, const vector<uint8_t>& dimensions={1,2,3});
-	void cancelLowPersistencePairsBelowInDim(const uint8_t& dim, const value_t& threshold=INFTY, const value_t& epsilon=0);
-	void cancelClosePairsBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, bool print=true);
 	void cancelBoundaryPairsBelow(const value_t& threshold=INFTY, const value_t& delta=0, const vector<uint8_t>& dimensions={1,2,3});
-
-	void prepareMorseSkeletonTestBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, const value_t& delta=-1, bool print=true);
-	void prepareMorseSkeletonAbove(const value_t& threshold=INFTY, const value_t& tolerance=0, bool print=true);
+	void cancelClosePairsBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, bool print=true);
 
 	void extractMorseSkeletonBelow(const value_t& threshold=INFTY, const uint8_t& dimension=3);
 	void extractMorseSkeletonParallelBelow(const value_t& threshold=INFTY, const uint8_t& dimension=3);
 	void extractMorseSkeletonBatchwiseBelow(const value_t& threshold=INFTY, const uint8_t& dimension=3, const size_t& batches=128);
 	void extractMorseSkeletonAbove(const value_t& threshold=INFTY);
 
-	void prepareAndExtractMorseSkeletonBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, const vector<uint8_t>& dimensions={1,2,3}, const size_t& batches=128);
-
 	vector<pair<Cube, uint8_t>> getMorseBoundary(const Cube& s) const;
 	vector<pair<Cube, uint8_t>> getMorseCoboundary(const Cube& s) const;
 
-	vector<tuple<index_t,index_t,index_t>> getMorseSkeletonVoxelsBelow() const;
-	vector<tuple<index_t,index_t,index_t>> getMorseSkeletonVoxelsAbove() const;
+	vector<vector<index_t>> getLowerMorseSkeleton() const;
+	vector<vector<index_t>> getUpperMorseSkeleton() const;
 
 	value_t getPerturbation() const;
 	vector<vector<Cube>> getCriticalCells() const;
@@ -204,8 +200,8 @@ private:
 	Cube getUnpairedFace(const Cube& cube, const vector<Cube>& L) const;
 	void insertToC(const Cube& cube);
 	void insertToV(const Cube& cube0, const Cube& cube1);
-	void insertToSkeletonBelow(const vector<tuple<index_t,index_t,index_t>>& voxels);
-	void insertToSkeletonAbove(const vector<tuple<index_t,index_t,index_t>>& voxels);
+	void insertToSkeletonBelow(const vector<vector<index_t>>& voxels);
+	void insertToSkeletonAbove(const vector<vector<index_t>>& voxels);
 	void processLowerStarsWithPerturbation(const value_t& threshold);
 	void processLowerStarsWithoutPerturbation(const value_t& threshold);
 	void processLowerStarsBetween(const index_t& xMin, const index_t& xMax, const index_t& yMin, const index_t& yMax,
@@ -240,6 +236,6 @@ private:
 	mutable std::mutex mutexC;
 	mutable std::mutex mutexV;
 	mutable std::mutex mutexS;
-	vector<tuple<index_t,index_t,index_t>> skeletonBelow;
-	vector<tuple<index_t,index_t,index_t>> skeletonAbove;
+	vector<vector<index_t>> skeletonBelow;
+	vector<vector<index_t>> skeletonAbove;
 };

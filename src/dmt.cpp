@@ -11,6 +11,20 @@ using namespace std;
 namespace py = pybind11;
 
 
+py::array_t<int64_t> convertListToNumpyArray(vector<vector<index_t>> &vector) {
+    int size = vector.size();
+    int dim = vector[0].size();
+    py::array_t<int64_t> numpyArray(
+        {size, dim}, {dim * sizeof(int64_t), sizeof(int64_t)});
+    auto numpyArrayView = numpyArray.mutable_unchecked();
+    for (int i = 0; i < vector.size(); i++) {
+        for (int j = 0; j < vector[i].size(); j++) {
+            numpyArrayView(i, j) = vector[i][j];
+        }
+    }
+    return numpyArray;
+}
+
 
 PYBIND11_MODULE(morse_complex, m) {
     py::class_<MorseComplex>(m, "MorseComplex")
@@ -28,7 +42,9 @@ PYBIND11_MODULE(morse_complex, m) {
 
         .def("perturb_image_minimal", &MorseComplex::perturbImageMinimal)
 
-        .def("process_lower_stars", &MorseComplex::processLowerStars, py::arg("threshold")=INFTY, py::arg("x_patch")=2, py::arg("y_patch")=2, py::arg("z_patch")=2)
+        .def("process_lower_stars", &MorseComplex::processLowerStars, py::arg("threshold")=INFTY, py::arg("x_patch")=1, py::arg("y_patch")=1, py::arg("z_patch")=1)
+
+        .def("sort_critical_cells", &MorseComplex::sortCriticalCells, py::arg("dimensions")=vector<uint8_t>{0,1,2,3})
 
         .def("check_gradient_vectorfield", &MorseComplex::checkV)
 
@@ -51,18 +67,14 @@ PYBIND11_MODULE(morse_complex, m) {
         .def("cancel_pairs_above", &MorseComplex::cancelPairsAbove, py::arg("threshold")=INFTY, py::arg("order_dim")=">", 
                                                                     py::arg("order_value")=">", py::arg("print")=true)
 
-        .def("cancel_low_persistence_pairs_below", &MorseComplex::cancelLowPersistencePairsBelow, py::arg("threshold")=INFTY, py::arg("epsilon")=0, py::arg("dimensions")=vector<uint8_t>{1,2,3})
+        .def("cancel_all_pairs_below", &MorseComplex::cancelAllPairsBelow, py::arg("threshold")=INFTY, py::arg("dimensions")=vector<uint8_t>{1,2,3})
 
-        .def("cancel_close_pairs_below", &MorseComplex::cancelClosePairsBelow, py::arg("threshold")=INFTY, py::arg("delta")=0,
-                                                                                py::arg("print")=true)
+        .def("cancel_low_persistence_pairs_below", &MorseComplex::cancelLowPersistencePairsBelow, py::arg("threshold")=INFTY, py::arg("epsilon")=0, py::arg("dimensions")=vector<uint8_t>{1,2,3})
 
         .def("cancel_boundary_pairs_below", &MorseComplex::cancelBoundaryPairsBelow, py::arg("threshold")=INFTY, py::arg("delta")=0, py::arg("dimensions")=vector<uint8_t>{1,2,3})
 
-        .def("prepare_morse_skeleton_test_below", &MorseComplex::prepareMorseSkeletonTestBelow, py::arg("threshold")=INFTY, py::arg("epsilon")=0,
-                                                                                                py::arg("delta")=-1, py::arg("print")=true)
-
-        .def("prepare_morse_skeleton_above", &MorseComplex::prepareMorseSkeletonAbove, py::arg("threshold")=INFTY, py::arg("tolerance")=0, 
-                                                                                        py::arg("print")=true)
+        .def("cancel_close_pairs_below", &MorseComplex::cancelClosePairsBelow, py::arg("threshold")=INFTY, py::arg("delta")=0,
+                                                                                py::arg("print")=true)
 
         .def("extract_morse_skeleton_below", &MorseComplex::extractMorseSkeletonBelow, py::arg("threshold")=INFTY, py::arg("dimension")=3)
 
@@ -72,12 +84,16 @@ PYBIND11_MODULE(morse_complex, m) {
 
         .def("extract_morse_skeleton_above", &MorseComplex::extractMorseSkeletonAbove, py::arg("threshold")=INFTY)
 
-        .def("prepare_and_extract_morse_skeleton_below", &MorseComplex::prepareAndExtractMorseSkeletonBelow, 
-                                                            py::arg("threshold")=INFTY, py::arg("epsilon")=0, py::arg("dimensions")=vector<uint8_t>{1,2,3}, py::arg("batches")=128)
 
-        .def("get_morse_skeleton_below", &MorseComplex::getMorseSkeletonVoxelsBelow)
+        .def("get_lower_morse_skeleton", [](MorseComplex &self) {
+            auto skeleton = self.getLowerMorseSkeleton();
+            return convertListToNumpyArray(skeleton);
+        })
 
-        .def("get_morse_skeleton_above", &MorseComplex::getMorseSkeletonVoxelsAbove);
+        .def("get_upper_morse_skeleton", [](MorseComplex &self) {
+            auto skeleton = self.getUpperMorseSkeleton();
+            return convertListToNumpyArray(skeleton);
+        });
 
         
 
