@@ -67,11 +67,17 @@ PYBIND11_MODULE(morse_complex, m) {
         .def("cancel_pairs_above", &MorseComplex::cancelPairsAbove, py::arg("threshold")=INFTY, py::arg("order_dim")=">", 
                                                                     py::arg("order_value")=">", py::arg("print")=true)
 
-        .def("cancel_all_pairs_below", &MorseComplex::cancelAllPairsBelow, py::arg("threshold")=INFTY, py::arg("dimensions")=vector<uint8_t>{1,2,3})
+        .def("cancel_all_pairs_below", &MorseComplex::cancelAllPairsBelow, py::arg("threshold")=INFTY, py::arg("dimensions")=vector<uint8_t>{3,2,1})
 
-        .def("cancel_low_persistence_pairs_below", &MorseComplex::cancelLowPersistencePairsBelow, py::arg("threshold")=INFTY, py::arg("epsilon")=0, py::arg("dimensions")=vector<uint8_t>{1,2,3})
+        .def("cancel_all_pairs_above", &MorseComplex::cancelAllPairsAbove, py::arg("threshold")=INFTY, py::arg("dimensions")=vector<uint8_t>{0,1,2})
 
-        .def("cancel_boundary_pairs_below", &MorseComplex::cancelBoundaryPairsBelow, py::arg("threshold")=INFTY, py::arg("delta")=0, py::arg("dimensions")=vector<uint8_t>{1,2,3})
+        .def("cancel_low_persistence_pairs_below", &MorseComplex::cancelLowPersistencePairsBelow, py::arg("threshold")=INFTY, py::arg("epsilon")=0, py::arg("dimensions")=vector<uint8_t>{3,2,1})
+
+        .def("cancel_low_persistence_pairs_above", &MorseComplex::cancelLowPersistencePairsAbove, py::arg("threshold")=INFTY, py::arg("epsilon")=0, py::arg("dimensions")=vector<uint8_t>{0,1,2})
+
+        .def("cancel_boundary_pairs_below", &MorseComplex::cancelBoundaryPairsBelow, py::arg("threshold")=INFTY, py::arg("delta")=0, py::arg("dimensions")=vector<uint8_t>{3,2,1})
+
+        .def("cancel_boundary_pairs_above", &MorseComplex::cancelBoundaryPairsAbove, py::arg("threshold")=INFTY, py::arg("delta")=0, py::arg("dimensions")=vector<uint8_t>{0,1,2})
 
         .def("cancel_close_pairs_below", &MorseComplex::cancelClosePairsBelow, py::arg("threshold")=INFTY, py::arg("delta")=0,
                                                                                 py::arg("print")=true)

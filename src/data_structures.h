@@ -155,9 +155,12 @@ public:
 	void cancelPairsBelow(const value_t& threshold=INFTY, string orderDim=">", string orderValue=">", bool print=true);
 	void cancelPairsBelowInDim(const uint8_t& dim, const value_t& threshold=INFTY, string orderValue=">", bool print=true);
 	void cancelPairsAbove(const value_t& threshold=INFTY, string orderDim=">", string orderValue=">", bool print=true);
-	void cancelAllPairsBelow(const value_t& threshold=INFTY, const vector<uint8_t>& dimensions={1,2,3});
-	void cancelLowPersistencePairsBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, const vector<uint8_t>& dimensions={1,2,3});
-	void cancelBoundaryPairsBelow(const value_t& threshold=INFTY, const value_t& delta=0, const vector<uint8_t>& dimensions={1,2,3});
+	void cancelAllPairsBelow(const value_t& threshold=INFTY, const vector<uint8_t>& dimensions={3,2,1});
+	void cancelAllPairsAbove(const value_t& threshold=INFTY, const vector<uint8_t>& dimensions={0,1,2});
+	void cancelLowPersistencePairsBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, const vector<uint8_t>& dimensions={3,2,1});
+	void cancelLowPersistencePairsAbove(const value_t& threshold=INFTY, const value_t& epsilon=0, const vector<uint8_t>& dimensions={0,1,2});
+	void cancelBoundaryPairsBelow(const value_t& threshold=INFTY, const value_t& delta=0, const vector<uint8_t>& dimensions={3,2,1});
+	void cancelBoundaryPairsAbove(const value_t& threshold=INFTY, const value_t& delta=0, const vector<uint8_t>& dimensions={0,1,2});
 	void cancelClosePairsBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, bool print=true);
 
 	void extractMorseSkeletonBelow(const value_t& threshold=INFTY, const uint8_t& dimension=3);
