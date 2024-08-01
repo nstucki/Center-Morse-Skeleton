@@ -148,7 +148,7 @@ public:
 	void perturbImage(const value_t& epsilon=0);
 	void perturbImageMinimal();
 
-	void processLowerStars(const value_t& threshold=INFTY, const index_t& xPatch=1, const index_t& yPatch=1, const index_t& zPatch=1);
+	void processLowerStars(const value_t& threshold=INFTY, const index_t& xPatch=2, const index_t& yPatch=2, const index_t& zPatch=2);
 	void sortCriticalCells(const vector<uint8_t>& dimensions={0,1,2,3});
 
 	void cancelPairByIndex(const uint8_t& dimS, const size_t& indexS, const uint8_t& dimT, const size_t& indexT);
@@ -156,17 +156,19 @@ public:
 	void cancelPairsBelowInDim(const uint8_t& dim, const value_t& threshold=INFTY, string orderValue=">", bool print=true);
 	void cancelPairsAbove(const value_t& threshold=INFTY, string orderDim=">", string orderValue=">", bool print=true);
 	void cancelAllPairsBelow(const value_t& threshold=INFTY, const vector<uint8_t>& dimensions={3,2,1});
-	void cancelAllPairsAbove(const value_t& threshold=INFTY, const vector<uint8_t>& dimensions={0,1,2});
+	void cancelAllPairsAbove(const value_t& threshold=-INFTY, const vector<uint8_t>& dimensions={0,1,2});
 	void cancelLowPersistencePairsBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, const vector<uint8_t>& dimensions={3,2,1});
-	void cancelLowPersistencePairsAbove(const value_t& threshold=INFTY, const value_t& epsilon=0, const vector<uint8_t>& dimensions={0,1,2});
+	void cancelLowPersistencePairsAbove(const value_t& threshold=-INFTY, const value_t& epsilon=0, const vector<uint8_t>& dimensions={0,1,2});
 	void cancelBoundaryPairsBelow(const value_t& threshold=INFTY, const value_t& delta=0, const vector<uint8_t>& dimensions={3,2,1});
-	void cancelBoundaryPairsAbove(const value_t& threshold=INFTY, const value_t& delta=0, const vector<uint8_t>& dimensions={0,1,2});
+	void cancelBoundaryPairsAbove(const value_t& threshold=-INFTY, const value_t& delta=0, const vector<uint8_t>& dimensions={0,1,2});
 	void cancelClosePairsBelow(const value_t& threshold=INFTY, const value_t& epsilon=0, bool print=true);
 
 	void extractMorseSkeletonBelow(const value_t& threshold=INFTY, const uint8_t& dimension=3);
-	void extractMorseSkeletonParallelBelow(const value_t& threshold=INFTY, const uint8_t& dimension=3);
-	void extractMorseSkeletonBatchwiseBelow(const value_t& threshold=INFTY, const uint8_t& dimension=3, const size_t& batches=128);
-	void extractMorseSkeletonAbove(const value_t& threshold=INFTY);
+	void extractMorseSkeletonAbove(const value_t& threshold=-INFTY);
+	void extractMorseSkeletonParallelBelow(const value_t& threshold=INFTY);
+	void extractMorseSkeletonParallelAbove(const value_t& threshold=-INFTY);
+	void extractMorseSkeletonBatchwiseBelow(const value_t& threshold=INFTY, const size_t& batches=128);
+	void extractMorseSkeletonBatchwiseAbove(const value_t& threshold=-INFTY, const size_t& batches=128);
 
 	vector<pair<Cube, uint8_t>> getMorseBoundary(const Cube& s) const;
 	vector<pair<Cube, uint8_t>> getMorseCoboundary(const Cube& s) const;
@@ -220,7 +222,9 @@ private:
 	void traverseCoflow(const Cube& s, vector<tuple<Cube, Cube, Cube>>& flow, bool coordinated=true) const;
 	void getConnections(const Cube&s, const Cube& t, vector<tuple<Cube, Cube, Cube>>& connections) const;
 	void extractMorseSkeletonInDimBelow(const uint8_t& dim, const value_t& threshold=INFTY);
+	void extractMorseSkeletonInDimAbove(const uint8_t& dim, const value_t& threshold=-INFTY);
 	void extractMorseSkeletonOfBatchInDimBelow(const uint8_t& dim, const size_t& start, const size_t& end, const value_t& threshold=INFTY);
+	void extractMorseSkeletonOfBatchInDimAbove(const uint8_t& dim, const size_t& start, const size_t& end, const value_t& threshold=-INFTY);
 	void cancelPair(const Cube&s, const Cube& t);
 	const vector<index_t> shape;
 	index_t mYZ = shape[1]*shape[2];

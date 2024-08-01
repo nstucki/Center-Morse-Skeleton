@@ -791,43 +791,6 @@ void MorseComplex::extractMorseSkeletonBelow(const value_t& threshold, const uin
 }
 
 
-void MorseComplex::extractMorseSkeletonParallelBelow(const value_t& threshold, const uint8_t& dimension) {
-	skeletonBelow.clear();
-
-	vector<future<void>> futures;
-	for (uint8_t dim = 0; dim < dimension+1; ++dim) {
-		futures.push_back(async(launch::async, &MorseComplex::extractMorseSkeletonInDimBelow,
-								this, dim, threshold));
-	}
-	for (auto& future : futures) {
-		future.wait();
-	}
-}
-
-
-void MorseComplex::extractMorseSkeletonBatchwiseBelow(const value_t& threshold, const uint8_t& dimension, const size_t& batches) {
-	skeletonBelow.clear();
-
-	vector<future<void>> futures;
-	size_t start;
-	size_t end;
-	for (uint8_t dim = 0; dim < dimension+1; ++dim) {
-		size_t batchSize = C[dim].size()/batches + 1;
-		start = 0;
-		end = batchSize;
-		for (size_t batch = 0; batch < batches; ++batch) {
-			futures.push_back(async(launch::async, &MorseComplex::extractMorseSkeletonOfBatchInDimBelow,
-								this, dim, start, end, threshold));
-			start = end;
-			end += batchSize;
-		}
-	}
-	for (auto& future : futures) {
-		future.wait();
-	}
-}
-
-
 void MorseComplex::extractMorseSkeletonAbove(const value_t& threshold) {
 	skeletonAbove.clear();
 
@@ -847,6 +810,80 @@ void MorseComplex::extractMorseSkeletonAbove(const value_t& threshold) {
 				if (get<1>(t) != get<2>(t)) { insertToSkeletonAbove(get<2>(t).getVertices()); }
 			}
 		}
+	}
+}
+
+
+void MorseComplex::extractMorseSkeletonParallelBelow(const value_t& threshold) {
+	skeletonBelow.clear();
+
+	vector<future<void>> futures;
+	for (uint8_t dim = 0; dim < 4; ++dim) {
+		futures.push_back(async(launch::async, &MorseComplex::extractMorseSkeletonInDimBelow,
+								this, dim, threshold));
+	}
+	for (auto& future : futures) {
+		future.wait();
+	}
+}
+
+
+void MorseComplex::extractMorseSkeletonParallelAbove(const value_t& threshold) {
+	skeletonAbove.clear();
+
+	vector<future<void>> futures;
+	for (uint8_t dim = 0; dim < 4; ++dim) {
+		futures.push_back(async(launch::async, &MorseComplex::extractMorseSkeletonInDimAbove,
+								this, dim, threshold));
+	}
+	for (auto& future : futures) {
+		future.wait();
+	}
+}
+
+
+void MorseComplex::extractMorseSkeletonBatchwiseBelow(const value_t& threshold, const size_t& batches) {
+	skeletonBelow.clear();
+
+	vector<future<void>> futures;
+	size_t start;
+	size_t end;
+	for (uint8_t dim = 0; dim < 4; ++dim) {
+		size_t batchSize = C[dim].size()/batches + 1;
+		start = 0;
+		end = batchSize;
+		for (size_t batch = 0; batch < batches; ++batch) {
+			futures.push_back(async(launch::async, &MorseComplex::extractMorseSkeletonOfBatchInDimBelow,
+								this, dim, start, end, threshold));
+			start = end;
+			end += batchSize;
+		}
+	}
+	for (auto& future : futures) {
+		future.wait();
+	}
+}
+
+
+void MorseComplex::extractMorseSkeletonBatchwiseAbove(const value_t& threshold, const size_t& batches) {
+	skeletonAbove.clear();
+
+	vector<future<void>> futures;
+	size_t start;
+	size_t end;
+	for (uint8_t dim = 0; dim < 4; ++dim) {
+		size_t batchSize = C[dim].size()/batches + 1;
+		start = 0;
+		end = batchSize;
+		for (size_t batch = 0; batch < batches; ++batch) {
+			futures.push_back(async(launch::async, &MorseComplex::extractMorseSkeletonOfBatchInDimAbove,
+								this, dim, start, end, threshold));
+			start = end;
+			end += batchSize;
+		}
+	}
+	for (auto& future : futures) {
+		future.wait();
 	}
 }
 
@@ -2119,10 +2156,8 @@ void MorseComplex::getConnections(const Cube&s, const Cube& t, vector<tuple<Cube
 
 
 void MorseComplex::extractMorseSkeletonInDimBelow(const uint8_t& dim, const value_t& threshold) {
-	vector<tuple<index_t,index_t,index_t>> voxels;
-
 	if (dim == 0) {
-		for (const Cube& c : C[0]) {
+		for (const Cube& c : C[dim]) {
 			if (c.birth >= threshold) { continue; }
 			insertToSkeletonBelow(c.getVertices());
 		}
@@ -2144,13 +2179,36 @@ void MorseComplex::extractMorseSkeletonInDimBelow(const uint8_t& dim, const valu
 }
 
 
+void MorseComplex::extractMorseSkeletonInDimAbove(const uint8_t& dim, const value_t& threshold) {
+	if (dim == 3) {
+		for (const Cube& c : C[dim]) {
+			if (c.birth < threshold) { continue; }
+			insertToSkeletonAbove(c.getVertices());
+		}
+	} else {
+		vector<tuple<Cube, Cube, Cube>> flow;
+		for (const Cube& c : C[dim]) {
+			if (c.birth < threshold) { continue; }
+			insertToSkeletonAbove(c.getVertices());
+
+			flow.clear();
+			traverseCoflow(c, flow, false);
+			for (const tuple<Cube, Cube, Cube>& t : flow) {
+				if (get<1>(t) != get<2>(t)) { 
+					insertToSkeletonAbove(get<2>(t).getVertices());
+				}
+			}
+		}
+	}
+}
+
+
 void MorseComplex::extractMorseSkeletonOfBatchInDimBelow(const uint8_t& dim, const size_t& start, const size_t& end, const value_t& threshold) {
-	vector<tuple<index_t,index_t,index_t>> voxels;
 	size_t bound = min(end, C[dim].size());
 
 	if (dim == 0) {
 		for (size_t i = start; i < bound; ++i) {
-			Cube& c = C[0][i];
+			Cube& c = C[dim][i];
 			if (c.birth >= threshold) { continue; }
 			insertToSkeletonBelow(c.getVertices());
 		}
@@ -2166,6 +2224,35 @@ void MorseComplex::extractMorseSkeletonOfBatchInDimBelow(const uint8_t& dim, con
 			for (const tuple<Cube, Cube, Cube>& t : flow) {
 				if (get<1>(t) != get<2>(t)) {
 					insertToSkeletonBelow(get<2>(t).getVertices());
+				}
+			}
+		}
+	}
+}
+
+
+void MorseComplex::extractMorseSkeletonOfBatchInDimAbove(const uint8_t& dim, const size_t& start, const size_t& end, const value_t& threshold) {
+	vector<tuple<index_t,index_t,index_t>> voxels;
+	size_t bound = min(end, C[dim].size());
+
+	if (dim == 3) {
+		for (size_t i = start; i < bound; ++i) {
+			Cube& c = C[dim][i];
+			if (c.birth < threshold) { continue; }
+			insertToSkeletonAbove(c.getVertices());
+		}
+	} else {
+		vector<tuple<Cube, Cube, Cube>> flow;
+		for (size_t i = start; i < bound; ++i) {
+			Cube& c = C[dim][i];
+			if (c.birth < threshold) { continue; }
+			insertToSkeletonAbove(c.getVertices());
+
+			flow.clear();
+			traverseCoflow(c, flow, false);
+			for (const tuple<Cube, Cube, Cube>& t : flow) {
+				if (get<1>(t) != get<2>(t)) {
+					insertToSkeletonAbove(get<2>(t).getVertices());
 				}
 			}
 		}

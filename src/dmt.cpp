@@ -42,7 +42,7 @@ PYBIND11_MODULE(morse_complex, m) {
 
         .def("perturb_image_minimal", &MorseComplex::perturbImageMinimal)
 
-        .def("process_lower_stars", &MorseComplex::processLowerStars, py::arg("threshold")=INFTY, py::arg("x_patch")=1, py::arg("y_patch")=1, py::arg("z_patch")=1)
+        .def("process_lower_stars", &MorseComplex::processLowerStars, py::arg("threshold")=INFTY, py::arg("x_patch")=2, py::arg("y_patch")=2, py::arg("z_patch")=2)
 
         .def("sort_critical_cells", &MorseComplex::sortCriticalCells, py::arg("dimensions")=vector<uint8_t>{0,1,2,3})
 
@@ -84,11 +84,15 @@ PYBIND11_MODULE(morse_complex, m) {
 
         .def("extract_morse_skeleton_below", &MorseComplex::extractMorseSkeletonBelow, py::arg("threshold")=INFTY, py::arg("dimension")=3)
 
-        .def("extract_morse_skeleton_parallel_below", &MorseComplex::extractMorseSkeletonParallelBelow, py::arg("threshold")=INFTY, py::arg("dimension")=3)
+        .def("extract_morse_skeleton_above", &MorseComplex::extractMorseSkeletonAbove, py::arg("threshold")=-INFTY)
 
-        .def("extract_morse_skeleton_batchwise_below", &MorseComplex::extractMorseSkeletonBatchwiseBelow, py::arg("threshold")=INFTY, py::arg("dimension")=3, py::arg("batches")=1)
+        .def("extract_morse_skeleton_parallel_below", &MorseComplex::extractMorseSkeletonParallelBelow, py::arg("threshold")=INFTY)
 
-        .def("extract_morse_skeleton_above", &MorseComplex::extractMorseSkeletonAbove, py::arg("threshold")=INFTY)
+        .def("extract_morse_skeleton_parallel_above", &MorseComplex::extractMorseSkeletonParallelAbove, py::arg("threshold")=-INFTY)
+
+        .def("extract_morse_skeleton_batchwise_below", &MorseComplex::extractMorseSkeletonBatchwiseBelow, py::arg("threshold")=INFTY, py::arg("batches")=128)
+
+        .def("extract_morse_skeleton_batchwise_above", &MorseComplex::extractMorseSkeletonBatchwiseAbove, py::arg("threshold")=-INFTY, py::arg("batches")=128)
 
 
         .def("get_lower_morse_skeleton", [](MorseComplex &self) {
