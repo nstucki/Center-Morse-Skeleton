@@ -1,0 +1,10 @@
+DATA:
+  DIM: 3                                                        # data dimension
+  DATA_PATH: '/home/home/supro/projects/DMT-images/data/MRBrainS'                                # Path to dataset
+  FORMAT: '.nii.gz'
+  DATASET: 'MRBrainS'                                          # Dataset name
+  IMG_SIZE: [48, 48, 48]                                        # Input image size
+  PIXDIM: [1, 1, 1]
+  NUM_PATCH: 4                                                  # no of patch from each volume
+  IN_CHANNELS: 1
+  OUT_CHANNELS: 1

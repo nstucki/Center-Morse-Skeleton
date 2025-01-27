@@ -1,21 +1,21 @@
 MODEL:
-  CHANNELS: [16, 32, 64, 128, 256]
+  CHANNELS: [64,128,256,512,1024]
   NUM_RES_UNITS: 2
   STRIDES: [2, 2, 2, 2]
 
 LOSS:
   USE_LOSS: 'Dice_ClDice'     # Avilable options 'Dice', 'ClDice', 'Dice_ClDice'
-  SKEL_METHOD: 'Viti'                # Avilable options 'DMT', 'Shit', 'Menten', 'Viti' 
+  SKEL_METHOD: 'Menten'                # Avilable options 'DMT', 'Shit', 'Menten', 'Viti' 
   ALPHA: 0.1
 
 TRAIN:
   NUM_WORKERS: 16                   # Number of data loading threads
   SEED: 10                          # random seed for reproducibility
-  MAX_EPOCHS: 3000
+  MAX_EPOCHS: 2000
   LR: 0.001
   BATCH_SIZE: 2                     # Batch size for a single GPU
   VAL_BATCH_SIZE: 1
   SAVE_PATH: "./models/"            # save path for the checkpoint
   LOG_PATH: "./runs/"               # save path for the tensorboard log
-  VAL_INTERVAL: 100                  # validation interval
-  LOG_INTERVAL: 100                   # tensorboard log interval
+  VAL_INTERVAL: 10                  # validation interval
+  LOG_INTERVAL: 10                  # tensorboard log interval

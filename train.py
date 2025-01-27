@@ -8,42 +8,33 @@ import numpy as np
 import json
 from argparse import ArgumentParser
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
+os.environ["CUDA_LAUNCH_BLOCKING"]="1"
 import sys
 from shutil import copyfile
 from glob import glob
+import pandas as pd
 
 import torch
-from torch.utils.data import DataLoader
 import wandb
-
 import monai
-from monai.data import list_data_collate, decollate_batch
 from monai.inferers import sliding_window_inference
 from monai.metrics import DiceMetric
 from monai.transforms import (
     Activations,
-    AddChanneld,
-    EnsureChannelFirstd,
-    Spacingd,
-    Orientationd,
     AsDiscrete,
     Compose,
-    LoadImaged,
-    RandCropByPosNegLabeld,
-    RandRotate90d,
-    ScaleIntensityd,
-    EnsureTyped,
     EnsureType,
 )
 from monai.visualize import plot_2d_or_3d_image
+
+from dataset import create_data_loaders
 
 from cldice_loss.cldice import soft_cldice, soft_dice_cldice
 import torch.nn as nn
 import torch.nn.functional as F
 
 from tqdm import tqdm
-
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 parser = ArgumentParser()
 parser.add_argument('--config',
@@ -140,65 +131,7 @@ def main(args):
     # monai.config.print_config()
     # logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-    # create a temporary directory and 40 random image, mask pairs
-    data_path = dataconfig.DATA.DATA_PATH
-
-    images = sorted(glob(os.path.join(data_path+'images', "*"+dataconfig.DATA.KEY+"*"+dataconfig.DATA.FORMAT)))
-    segs = sorted(glob(os.path.join(data_path+'labels', "*"+dataconfig.DATA.KEY+"*"+dataconfig.DATA.FORMAT)))
-    
-    # train and validation files
-    train_files = [{"img": img, "seg": seg} for img, seg in zip(images[:dataconfig.DATA.TRAIN_SAMPLES], segs[:dataconfig.DATA.TRAIN_SAMPLES])]
-    val_files = [{"img": img, "seg": seg} for img, seg in zip(images[-dataconfig.DATA.VAL_SAMPLES:], segs[-dataconfig.DATA.VAL_SAMPLES:])]
-
-    # define transforms for image and segmentation
-    train_transforms = Compose(
-        [
-            LoadImaged(keys=["img", "seg"]),
-            Spacingd(keys=["img", "seg"], pixdim=tuple(dataconfig.DATA.PIXDIM), mode=("bilinear", "nearest")),
-            EnsureChannelFirstd(keys=["img", "seg"]), # need to check for new dataset
-            Orientationd(keys=["img", "seg"], axcodes="RAS"),
-            ScaleIntensityd(keys=["img", "seg"]), # doing normalisation here :)
-            RandCropByPosNegLabeld(
-                keys=["img", "seg"],
-                label_key="seg",
-                spatial_size=dataconfig.DATA.IMG_SIZE,
-                pos=1,
-                neg=1,
-                num_samples=dataconfig.DATA.NUM_PATCH,
-            ),
-            #RandRotate90d(keys=["img", "seg"], prob=0.5, spatial_axes=[0, 1]),
-            EnsureTyped(keys=["img", "seg"]),
-        ]
-    )
-    val_transforms = Compose(
-        [
-            LoadImaged(keys=["img", "seg"]),
-            Spacingd(keys=["img", "seg"], pixdim=tuple(dataconfig.DATA.PIXDIM), mode=("bilinear", "nearest")),
-            EnsureChannelFirstd(keys=["img", "seg"]),
-            Orientationd(keys=["img", "seg"], axcodes="RAS"),
-            ScaleIntensityd(keys=["img", "seg"]), # doing normalisation here :)
-            EnsureTyped(keys=["img", "seg"]),
-        ]
-    )
-
-    # create a training data loader
-    train_ds = monai.data.Dataset(data=train_files, transform=train_transforms)
-    # use batch_size=2 to load images and use RandCropByPosNegLabeld to generate 2 x 4 images for network training
-    train_loader = DataLoader(
-        train_ds,
-        batch_size=config.TRAIN.BATCH_SIZE,
-        shuffle=True,
-        num_workers=config.TRAIN.NUM_WORKERS,
-        collate_fn=list_data_collate,
-        pin_memory=torch.cuda.is_available(),
-    )
-    
-    # create a validation data loader
-    val_ds = monai.data.Dataset(data=val_files, transform=val_transforms)
-    val_loader = DataLoader(val_ds,
-                            batch_size=config.TRAIN.VAL_BATCH_SIZE,
-                            num_workers=config.TRAIN.NUM_WORKERS,
-                            collate_fn=list_data_collate)
+    train_loader, val_loader = create_data_loaders(config, dataconfig)
     
     dice_metric = DiceMetric(include_background=True,
                              reduction="mean",
@@ -218,8 +151,8 @@ def main(args):
         num_res_units=config.MODEL.NUM_RES_UNITS,
     ).to(device)
         
-    optimizer = torch.optim.Adam(model.parameters(), config.TRAIN.LR)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=900, gamma=0.1)   #always check that the step size is high enough
+    optimizer = torch.optim.AdamW(model.parameters(), config.TRAIN.LR)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1000000, gamma=0.1)   #always check that the step size is high enough
     
     # Resume training
     last_epoch = 0
@@ -237,28 +170,24 @@ def main(args):
         
     # start a typical PyTorch training
     best_metric = -1
-    #best_betti_distance = -1
     best_metric_epoch = -1
-    #best_betti_distance_epoch = -1
     epoch_loss_values = list()
     metric_values = list()
 
     for epoch in tqdm(range(last_epoch, config.TRAIN.MAX_EPOCHS)):
-        #print("-" * 10)
-        #print(f"epoch {epoch + 1}/{max_epoch}")
         model.train()
         epoch_loss = 0
 
         wandb_epoch_dict = {}
         for iter_, batch_data in enumerate(tqdm(train_loader)):
-            inputs, labels = batch_data["img"].to(device), batch_data["seg"].to(device)
+            inputs, labels = batch_data["img"].to(torch.float32).to(device), batch_data["seg"].to(torch.float32).to(device)
             optimizer.zero_grad()
             wandb_batch_dict = {}
 
             if dataconfig.DATA.IN_CHANNELS == 1:
                 outputs = model(inputs)
             elif dataconfig.DATA.IN_CHANNELS == 3:
-                outputs = model(torch.squeeze(inputs).permute(0,3,1,2))
+                outputs = model(torch.squeeze(inputs).permute(0,3,1,2))  # for RGB data
 
             outputs = torch.sigmoid(outputs)
             if config.LOSS.USE_LOSS == 'Dice':
@@ -269,7 +198,6 @@ def main(args):
             optimizer.step()
             scheduler.step()
             epoch_loss += loss.item()
-            epoch_len = len(train_ds) // train_loader.batch_size
 
             if args.logging:
                 if (iter_+1) % config.TRAIN.LOG_INTERVAL == 0:
@@ -299,7 +227,7 @@ def main(args):
                     if dataconfig.DATA.IN_CHANNELS == 1:
                         val_outputs = sliding_window_inference(val_images, roi_size, sw_batch_size, model)
                     elif dataconfig.DATA.IN_CHANNELS == 3:
-                        val_outputs = sliding_window_inference(torch.squeeze(val_images).permute(0,3,1,2), roi_size, sw_batch_size, model)
+                        val_outputs = sliding_window_inference(torch.squeeze(val_images).permute(0,3,1,2), roi_size, sw_batch_size, model)  # for RGB data
                     # val_outputs = [post_trans(i) for i in decollate_batch(val_outputs)]
                     val_outputs_bin = post_trans(val_outputs)
                     # compute metric for current iteration
@@ -318,8 +246,8 @@ def main(args):
                 dic['optimizer'] = optimizer.state_dict()
                 dic['scheduler'] = scheduler.state_dict()
                 torch.save(dic, './runs/'+dataconfig.DATA.DATASET+'/'+exp_name+'/last_model_dict.pth')
-                if (epoch+1)%(int(config.TRAIN.MAX_EPOCHS/50)) == 0:
-                    torch.save(dic, './runs/'+dataconfig.DATA.DATASET+'/'+exp_name+'/epoch'+str(epoch+1)+'_model_dict.pth')
+                # if (epoch+1)%(int(config.TRAIN.MAX_EPOCHS/50)) == 0:
+                #     torch.save(dic, './runs/'+dataconfig.DATA.DATASET+'/'+exp_name+'/epoch'+str(epoch+1)+'_model_dict.pth')
                 if metric > best_metric:
                     best_metric = metric
                     best_metric_epoch = epoch + 1

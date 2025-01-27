@@ -1,11 +1,11 @@
 DATA:
   DIM: 3                                                        # data dimension
   DATA_PATH: '/home/home/supro/projects/DMT-images/data/synthetic/'                                # Path to dataset
-  FORMAT: '.nii.gz'
-  DATASET: 'synthetic'                                          # Dataset name
+  FORMAT: '.npy'
+  DATASET: 'SynBlobDataHoles'                                          # Dataset name
   IMG_SIZE: [32, 32, 32]                                        # Input image size
-  TRAIN_SAMPLES: 100
-  VAL_SAMPLES: 10
-  NUM_PATCH: 8                                                  # no of patch from each volume
+  TRAIN_SAMPLES: 14
+  VAL_SAMPLES: 2
+  NUM_PATCH: 10                                                  # no of patch from each volume
   IN_CHANNELS: 1
   OUT_CHANNELS: 1

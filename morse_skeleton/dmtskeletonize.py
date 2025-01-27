@@ -40,11 +40,11 @@ class DMTSkeletonize(torch.nn.Module):
     def _skeleton_(self, img):
         d = distance_transform(img).astype(np.float32)
         MC = mc.MorseComplex(d)
-        MC.process_lower_stars(10, 10, 10)
+        MC.process_lower_stars(0, 2, 2, 2)
 
         # TODO: For now filtering is disabled
         # MC.prepare_morse_skeleton_below(threshold=self.threshold, epsilon=self.epsilon, delta=self.delta)
-        MC.extract_morse_skeleton_below(threshold=self.threshold, dimension=3)
+        MC.extract_morse_skeleton_batchwise_below(threshold=self.threshold, dimension=3, batches=4)
 
         pixels_below = np.array(MC.get_morse_skeleton_below())
         skeleton = np.zeros_like(img)

@@ -1,43 +1,35 @@
-from collections import defaultdict, namedtuple
 from contextlib import contextmanager
-from types import SimpleNamespace
-from typing import Callable, Dict, Generator, NamedTuple, List
+from typing import Callable, Generator
 from train import dict2obj
 from argparse import ArgumentParser
 import yaml
-from glob import glob
-import pandas
-import os
 import sys
+import os
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
+os.environ["CUDA_LAUNCH_BLOCKING"]="1"
 sys.path.append("./metrics/Betti-matching-3D/build")
-import betti_matching
-from monai.data import list_data_collate, decollate_batch
 from monai.inferers import sliding_window_inference
 from monai.transforms import (
     Activations,
-    EnsureChannelFirstd,
     AsDiscrete,
-    Spacingd,
-    Orientationd,
     Compose,
-    LoadImaged,
-    ScaleIntensityd,
-    EnsureTyped,
     EnsureType,
 )
-from torch.utils.data import DataLoader
+from dataset import create_data_loaders
 import monai.data
 import monai.networks.nets
 import torch.utils.data
 import numpy as np
 import time
-from monai.metrics import DiceMetric
+from monai.metrics import compute_meandice as dice_metric
+from monai.metrics import compute_hausdorff_distance as hd_metric
 from sklearn.metrics import accuracy_score
 from metrics.rand import adapted_rand
 from metrics.voi import voi
 from metrics.cldice import ClDiceMetric
 from metrics.betti_matching import BettiMatchingLoss, FiltrationType
-import pathlib
+from metrics.betti_error import bett_error
 import tqdm
 
 parser = ArgumentParser()
@@ -72,7 +64,7 @@ def main(args):
         # Load the dataconfig files
     with open(args.config) as f:
         print('\n*** Config file')
-        print(args.dataconfig)
+        print(args.config)
         config = yaml.load(f, Loader=yaml.FullLoader)
     config = dict2obj(config)
     with open(args.dataconfig) as f:
@@ -81,34 +73,12 @@ def main(args):
         dataconfig = yaml.load(f, Loader=yaml.FullLoader)
     dataconfig = dict2obj(dataconfig)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # create a temporary directory and 40 random image, mask pairs
-    data_path = dataconfig.DATA.DATA_PATH
-
-    images = sorted(glob(os.path.join(data_path+'images', "*"+dataconfig.DATA.KEY+"*"+dataconfig.DATA.FORMAT)))
-    segs = sorted(glob(os.path.join(data_path+'labels', "*"+dataconfig.DATA.KEY+"*"+dataconfig.DATA.FORMAT)))
     
-    # train and validation files
-    train_files = [{"img": img, "seg": seg} for img, seg in zip(images[:dataconfig.DATA.TRAIN_SAMPLES], segs[:dataconfig.DATA.TRAIN_SAMPLES])]
-    val_files = [{"img": img, "seg": seg} for img, seg in zip(images[-dataconfig.DATA.VAL_SAMPLES:], segs[-dataconfig.DATA.VAL_SAMPLES:])]
-    val_transforms = Compose(
-        [
-            LoadImaged(keys=["img", "seg"]),
-            Spacingd(keys=["img"], pixdim=tuple(dataconfig.DATA.PIXDIM), mode=("bilinear"), align_corners=True),
-            EnsureChannelFirstd(keys=["img", "seg"]),
-            Orientationd(keys=["img", "seg"], axcodes="RAS"),
-            ScaleIntensityd(keys=["img", "seg"]), # doing normalisation here :)
-            EnsureTyped(keys=["img", "seg"]),
-        ]
-    )
+    # Load the data
+    _, val_loader = create_data_loaders(config, dataconfig)
 
-    # create a validation data loader
-    val_ds = monai.data.Dataset(data=val_files, transform=val_transforms)
-    val_loader = DataLoader(val_ds,
-                            batch_size=config.TRAIN.VAL_BATCH_SIZE,
-                            num_workers=config.TRAIN.NUM_WORKERS,
-                            collate_fn=list_data_collate)
     post_trans = Compose([EnsureType(), Activations(sigmoid=True), AsDiscrete(threshold=0.5)])
-    dice_loss = DiceMetric()
+
     betti_matching_loss_relative = BettiMatchingLoss(relative=True, sigmoid=False, filtration_type=FiltrationType.SUPERLEVEL, cpu_batch_size=64)
     betti_matching_loss_nonrelative = BettiMatchingLoss(relative=False, sigmoid=False, filtration_type=FiltrationType.SUPERLEVEL, cpu_batch_size=64)
     cl_dice_loss = ClDiceMetric()
@@ -129,6 +99,8 @@ def main(args):
     bm_loss_nonrelative = []
     dice = []
     cl_dice = []
+    b_error = []
+    hd_error = []
 
     with torch.no_grad():
         for val_data in (val_data_tqdm := tqdm.tqdm(val_loader, leave=False)):
@@ -142,25 +114,34 @@ def main(args):
                 val_outputs = sliding_window_inference(torch.squeeze(val_images).permute(0,3,1,2), roi_size, sw_batch_size, model)
             val_outputs = torch.nn.functional.interpolate(val_outputs, val_labels.shape[2:], mode='trilinear', align_corners=True)
             val_outputs = post_trans(val_outputs)
-            bm_loss_relative_ = betti_matching_loss_relative(val_outputs, val_labels)
+            # print(val_outputs.shape, val_labels.shape)
+            # bm_loss_relative_ = betti_matching_loss_relative(val_outputs, val_labels)
             bm_loss_nonrelative_ = betti_matching_loss_nonrelative(val_outputs, val_labels)
-            dice_ = dice_loss(val_outputs, val_labels)
+            dice_ = dice_metric(val_outputs, val_labels)
             cl_dice_ = cl_dice_loss(val_outputs, val_labels)
+            bett_error_ = bett_error(val_outputs.cpu().squeeze().numpy(), val_labels.cpu().squeeze().numpy())
+            hd_error_ = hd_metric(val_outputs, val_labels)
 
-            bm_loss_relative.append(bm_loss_relative_[0].item())
+            # bm_loss_relative.append(bm_loss_relative_[0].item())
             bm_loss_nonrelative.append(bm_loss_nonrelative_[0].item())
-            dice.append(dice_.item())
+            dice.append(dice_.cpu().numpy())
             cl_dice.append(cl_dice_[0])
+            b_error.append(bett_error_)
+            hd_error.append(hd_error_.cpu().numpy())
 
     # After each checkpoint that has been evaluated, save the (partial) dataframe to csv
     # save_dataframe(validation_results, f"evaluation/evaluation_{args.base_tag}.csv")
-    print(f"BM Loss Relative: {np.mean(bm_loss_relative)}")
-    print(f"BM Loss Nonrelative: {np.mean(bm_loss_nonrelative)}")
+    # print(f"BM Loss Relative: {np.mean(bm_loss_relative)}")
     print(f"Dice: {np.mean(dice)}")
     print(f"ClDice: {np.mean(cl_dice)}")
+    print(f"Hausdorff Error: {np.mean(hd_error)}")
+    print(f"Betti Error: {np.mean(b_error, axis=0)}")
+    print(f"BM Loss Nonrelative: {np.mean(bm_loss_nonrelative)}")
     print("Evaluation finished.")
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
+    if args.cuda_visible_device is not None:
+        os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(map(str, args.cuda_visible_device))
     main(args)
