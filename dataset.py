@@ -83,8 +83,9 @@ def create_data_loaders(config, dataconfig):
         # define transforms for image and segmentation
         train_transforms = Compose(
             [
-                LoadImaged(keys=["img", "seg"]),
-                EnsureChannelFirstd(keys=["img", "seg"]), # need to check for new dataset
+                LoadImaged(keys=["img", "seg"], image_only=True),
+                EnsureChannelFirstd(keys=["img"], channel_dim=0 if dataconfig.DATA.IMAGE_HAS_CHANNEL_DIMENSION else 'no_channel'),
+                EnsureChannelFirstd(keys=["seg"], channel_dim=0 if dataconfig.DATA.LABEL_HAS_CHANNEL_DIMENSION else 'no_channel'),
                 # ScaleIntensityd(keys=["img"]), # doing normalisation here :)
                 RandCropByPosNegLabeld(
                     keys=["img", "seg"],
@@ -101,8 +102,9 @@ def create_data_loaders(config, dataconfig):
         )
         val_transforms = Compose(
             [
-                LoadImaged(keys=["img", "seg"]),
-                EnsureChannelFirstd(keys=["img", "seg"]),
+                LoadImaged(keys=["img", "seg"], image_only=True),
+                EnsureChannelFirstd(keys=["img"], channel_dim=0 if dataconfig.DATA.IMAGE_HAS_CHANNEL_DIMENSION else 'no_channel'),
+                EnsureChannelFirstd(keys=["seg"], channel_dim=0 if dataconfig.DATA.LABEL_HAS_CHANNEL_DIMENSION else 'no_channel'),
                 # ScaleIntensityd(keys=["img"]), # doing normalisation here :)
                 EnsureTyped(keys=["img", "seg"]),
             ]
@@ -241,15 +243,13 @@ def create_data_loaders(config, dataconfig):
         )
 
 
-
-
     # create a training data loader
     train_ds = monai.data.Dataset(data=train_files, transform=train_transforms)
     # use batch_size=2 to load images and use RandCropByPosNegLabeld to generate 2 x 4 images for network training
     train_loader = DataLoader(
         train_ds,
         batch_size=config.TRAIN.BATCH_SIZE,
-        shuffle=True,
+        shuffle=False,
         num_workers=config.TRAIN.NUM_WORKERS,
         collate_fn=list_data_collate,
         pin_memory=torch.cuda.is_available(),

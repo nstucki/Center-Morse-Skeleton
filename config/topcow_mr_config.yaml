@@ -1,19 +1,19 @@
 MODEL:
-  CHANNELS: [64,128,256,512,1024]
+  CHANNELS: [16, 32, 64, 128, 256]
   NUM_RES_UNITS: 2
   STRIDES: [2, 2, 2, 2]
 
 LOSS:
-  USE_LOSS: 'Dice_ClDice'     # Avilable options 'Dice', 'ClDice', 'Dice_ClDice'
-  SKEL_METHOD: 'Menten'                # Avilable options 'DMT', 'Shit', 'Menten', 'Viti' 
-  ALPHA: 0.1
+  USE_LOSS: 'DiceWasserstein'     # Avilable options 'Dice', 'ClDice', 'Dice_ClDice'
+  SKEL_METHOD: 'DMT'                # Avilable options 'DMT', 'Shit', 'Menten', 'Viti' 
+  ALPHA: 0.01
 
 TRAIN:
-  NUM_WORKERS: 16                   # Number of data loading threads
+  NUM_WORKERS: 0                   # Number of data loading threads
   SEED: 10                          # random seed for reproducibility
-  MAX_EPOCHS: 100
+  MAX_EPOCHS: 1000
   LR: 0.001
-  BATCH_SIZE: 4                     # Batch size for a single GPU
+  BATCH_SIZE: 32                     # Batch size for a single GPU
   VAL_BATCH_SIZE: 1
   SAVE_PATH: "./models/"            # save path for the checkpoint
   LOG_PATH: "./runs/"               # save path for the tensorboard log

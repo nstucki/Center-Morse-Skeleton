@@ -43,7 +43,7 @@ class DMTSkeletonize(torch.nn.Module):
         MC.process_lower_stars(0, 2, 2, 2)
 
         # TODO: For now filtering is disabled
-        # MC.prepare_morse_skeleton_below(threshold=self.threshold, epsilon=self.epsilon, delta=self.delta)
+        # MC.prepare_morse_skeleton_below(threshold=self.threshold, epsilon=self.epsilon, delta=self.delta, print=False)
         MC.extract_morse_skeleton_batchwise_below(threshold=self.threshold, dimension=3, batches=4)
 
         pixels_below = np.array(MC.get_morse_skeleton_below())
@@ -68,7 +68,7 @@ class DMTSkeletonize(torch.nn.Module):
 
         items = [img_[0].cpu().numpy() for img_ in img_bin]
 
-        with ThreadPoolExecutor(max_workers=8) as executor:
+        with ThreadPoolExecutor(max_workers=16) as executor:
             # Map the function to the items and execute in parallel
             results = list(executor.map(self._skeleton_, items))
             results = [torch.from_numpy(result).to(img.device) for result in results]

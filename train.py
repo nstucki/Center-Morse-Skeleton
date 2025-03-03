@@ -20,6 +20,7 @@ import wandb
 import monai
 from monai.inferers import sliding_window_inference
 from monai.metrics import DiceMetric
+from metrics.cldice import ClDiceMetric
 from monai.transforms import (
     Activations,
     AsDiscrete,
@@ -29,8 +30,8 @@ from monai.transforms import (
 from monai.visualize import plot_2d_or_3d_image
 
 from dataset import create_data_loaders
-
-from cldice_loss.cldice import soft_cldice, soft_dice_cldice
+from monai.losses.dice import DiceLoss
+from loss_function import soft_cldice, soft_dice_cldice, DiceBettiMatchingLoss, DiceWassersteinLoss
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -85,19 +86,31 @@ def main(args):
             exp_name = config.LOSS.USE_LOSS
         else:
             exp_name = config.LOSS.USE_LOSS + '_scratch'
-        loss_function = monai.losses.DiceLoss(sigmoid=False)
-    if config.LOSS.USE_LOSS == 'Dice_ClDice':
+        loss_function = DiceLoss(sigmoid=True)
+    elif config.LOSS.USE_LOSS == 'Dice_ClDice':
         if args.pretrained:
             exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.SKEL_METHOD+'_alpha_'+str(config.LOSS.ALPHA)
         else:
             exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.SKEL_METHOD+'_alpha_'+str(config.LOSS.ALPHA)+'_scratch'
-        loss_function = soft_dice_cldice(mode=config.LOSS.SKEL_METHOD, alpha=config.LOSS.ALPHA)
-    if config.LOSS.USE_LOSS == 'ClDice':
+        loss_function = soft_dice_cldice(sigmoid=True, mode=config.LOSS.SKEL_METHOD, alpha=config.LOSS.ALPHA)
+    elif config.LOSS.USE_LOSS == 'ClDice':
         if args.pretrained:
             exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.SKEL_METHOD
         else:
             exp_name = config.LOSS.USE_LOSS+'_'+config.LOSS.SKEL_METHOD+'_scratch'
-        loss_function = soft_cldice(mode=config.LOSS.SKEL_METHOD)
+        loss_function = soft_cldice(sigmoid=True, mode=config.LOSS.SKEL_METHOD)
+    elif config.LOSS.USE_LOSS == 'DiceBettiMatching':
+        if args.pretrained:
+            exp_name = config.LOSS.USE_LOSS+'_alpha='+str(config.LOSS.ALPHA)
+        else:
+            exp_name = config.LOSS.USE_LOSS+'_alpha='+str(config.LOSS.ALPHA)+'_scratch'
+        loss_function = DiceBettiMatchingLoss(alpha=config.LOSS.ALPHA, sigmoid=True)
+    elif config.LOSS.USE_LOSS == 'DiceWasserstein':
+        if args.pretrained:
+            exp_name = config.LOSS.USE_LOSS+'_alpha='+str(config.LOSS.ALPHA)
+        else:
+            exp_name = config.LOSS.USE_LOSS+'_alpha='+str(config.LOSS.ALPHA)+'_scratch'
+        loss_function = DiceWassersteinLoss(alpha=config.LOSS.ALPHA, sigmoid=True)
 
     # Copy config files and verify if files exist
     exp_path = './runs/'+dataconfig.DATA.DATASET+'/'+exp_name
@@ -112,6 +125,7 @@ def main(args):
             sys.exit()
         shutil.rmtree(exp_path)
         os.makedirs(exp_path)
+        copyfile(args.config, os.path.join(exp_path, "config.yaml"))
     elif os.path.exists(exp_path) and args.resume == None:
         raise Exception('ERROR: Experiment folder exist, please delete or use flag --overwrite')
     else:
@@ -136,6 +150,7 @@ def main(args):
     dice_metric = DiceMetric(include_background=True,
                              reduction="mean",
                              get_not_nans=False)
+    cl_dice_loss = ClDiceMetric()
     
     post_trans = Compose([EnsureType(), Activations(sigmoid=True), AsDiscrete(threshold=0.5)])
     
@@ -169,17 +184,18 @@ def main(args):
         model.load_state_dict(dic['model'])
         
     # start a typical PyTorch training
-    best_metric = -1
-    best_metric_epoch = -1
+    best_metric_dice = -1
+    best_metric_cl_dice = -1
+    best_metric_dice_epoch = -1
+    best_metric_cl_dice_epoch = -1
     epoch_loss_values = list()
-    metric_values = list()
 
-    for epoch in tqdm(range(last_epoch, config.TRAIN.MAX_EPOCHS)):
+    for epoch in tqdm(range(last_epoch, config.TRAIN.MAX_EPOCHS), desc='Epochs', ncols=100, position=0, leave=True):
         model.train()
         epoch_loss = 0
 
         wandb_epoch_dict = {}
-        for iter_, batch_data in enumerate(tqdm(train_loader)):
+        for iter_, batch_data in enumerate(tqdm(train_loader, desc='Batches', ncols=100, position=1, leave=False)):
             inputs, labels = batch_data["img"].to(torch.float32).to(device), batch_data["seg"].to(torch.float32).to(device)
             optimizer.zero_grad()
             wandb_batch_dict = {}
@@ -189,18 +205,18 @@ def main(args):
             elif dataconfig.DATA.IN_CHANNELS == 3:
                 outputs = model(torch.squeeze(inputs).permute(0,3,1,2))  # for RGB data
 
-            outputs = torch.sigmoid(outputs)
             if config.LOSS.USE_LOSS == 'Dice':
                 loss = loss_function(outputs, labels)
             else:
                 loss, dic = loss_function(outputs, labels)
+                
             loss.backward()
             optimizer.step()
             scheduler.step()
             epoch_loss += loss.item()
 
             if args.logging:
-                if (iter_+1) % config.TRAIN.LOG_INTERVAL == 0:
+                if (epoch+1) % config.TRAIN.LOG_INTERVAL == 0:
                     wandb_batch_dict.update({'train_loss': loss.item()})
                     if config.LOSS.USE_LOSS == 'Dice':
                         wandb_batch_dict.update({'dice_loss': loss.item()})
@@ -214,33 +230,33 @@ def main(args):
 
         if (epoch + 1) % config.TRAIN.VAL_INTERVAL == 0:
             model.eval()
+            cl_dice_list = []
+            # model.load_state_dict(torch.load('/home/home/supro/projects/Betti-Matching-Segmentation/models/CREMI-Boundaries/DiceBettiMatching_superlevel_relative=False_alpha=0.1_scratch_id=2025-01-28_09-45-58_/best_validation_dice_metric_model_dict.pth')['model'])
             with torch.no_grad():
-                val_images = None
-                val_labels = None
-                val_outputs = None
-
                 #betti_distances = []
-                for val_data in tqdm(val_loader):
+                for val_data in tqdm(val_loader, desc='Validation', ncols=100, position=1, leave=False):
                     val_images, val_labels = val_data["img"].to(device), val_data["seg"].to(device)
                     roi_size = tuple(dataconfig.DATA.IMG_SIZE)
                     sw_batch_size = 4
                     if dataconfig.DATA.IN_CHANNELS == 1:
-                        val_outputs = sliding_window_inference(val_images, roi_size, sw_batch_size, model)
+                        val_outputs = sliding_window_inference(val_images, (roi_size), sw_batch_size, model, overlap=0.5)
                     elif dataconfig.DATA.IN_CHANNELS == 3:
                         val_outputs = sliding_window_inference(torch.squeeze(val_images).permute(0,3,1,2), roi_size, sw_batch_size, model)  # for RGB data
                     # val_outputs = [post_trans(i) for i in decollate_batch(val_outputs)]
                     val_outputs_bin = post_trans(val_outputs)
                     # compute metric for current iteration
                     dice_metric(y_pred=val_outputs_bin, y=val_labels)
+                    # cl_dice_list.append(cl_dice_loss(val_outputs_bin, val_labels)[0])
 
                     #for pair in zip(val_outputs,val_labels):
                     #    betti_distances.append(compute_Betti_distance(pair))
                 #betti_distance = torch.mean(torch.stack(betti_distances).float())
+
                 # aggregate the final mean dice result
-                metric = dice_metric.aggregate().item()
-                # reset the status for next validation round
+                metric_dice = dice_metric.aggregate().item()
                 dice_metric.reset()
-                metric_values.append(metric)
+                # metric_cl_dice = torch.mean(torch.stack(cl_dice_list)).item()
+
                 dic = {}
                 dic['model'] = model.state_dict()
                 dic['optimizer'] = optimizer.state_dict()
@@ -248,11 +264,16 @@ def main(args):
                 torch.save(dic, './runs/'+dataconfig.DATA.DATASET+'/'+exp_name+'/last_model_dict.pth')
                 # if (epoch+1)%(int(config.TRAIN.MAX_EPOCHS/50)) == 0:
                 #     torch.save(dic, './runs/'+dataconfig.DATA.DATASET+'/'+exp_name+'/epoch'+str(epoch+1)+'_model_dict.pth')
-                if metric > best_metric:
-                    best_metric = metric
-                    best_metric_epoch = epoch + 1
-                    torch.save(dic, './runs/'+dataconfig.DATA.DATASET+'/'+exp_name+'/best_model_dict.pth')
+                if metric_dice > best_metric_dice:
+                    best_metric_dice = metric_dice
+                    best_metric_dice_epoch = epoch + 1
+                    torch.save(dic, './runs/'+dataconfig.DATA.DATASET+'/'+exp_name+'/best_dice_model_dict.pth')
                 
+                # if metric_cl_dice > best_metric_cl_dice:
+                #     best_metric_cl_dice = metric_cl_dice
+                #     best_metric_cl_dice_epoch = epoch + 1
+                #     torch.save(dic, './runs/'+dataconfig.DATA.DATASET+'/'+exp_name+'/best_cl_dice_model_dict.pth')
+
                 #if betti_distance < best_betti_distance:
                 #    best_betti_distance = betti_distance
                 #    best_betti_distance_epoch = epoch + 1
@@ -264,7 +285,8 @@ def main(args):
                 #    )
                 #)
                 if args.logging:
-                    wandb_epoch_dict.update({'val_mean_dice': metric})
+                    wandb_epoch_dict.update({'val_mean_dice': metric_dice})
+                    # wandb_epoch_dict.update({'val_mean_cl_dice': metric_cl_dice})
                     # log val_images, val_labels and val_outputs as GIF in wandb
                     wandb_epoch_dict.update({"val_images": [wandb.Video((i.cpu().numpy().transpose(3,0,1,2)*255).astype(np.uint8), caption='Sample'+str(i), fps=10) for i in val_images]})
                     wandb_epoch_dict.update({"val_labels": [wandb.Video((i.cpu().numpy().transpose(3,0,1,2)*255).astype(np.uint8), caption='Sample'+str(i), fps=10) for i in val_labels]})
@@ -273,7 +295,8 @@ def main(args):
                     #wandb_epoch_dict.update({'val_mean_betti': betti_distance})
                     wandb.log(wandb_epoch_dict)
 
-    print(f"train completed, best_metric: {best_metric:.4f} at epoch: {best_metric_epoch}")
+    print(f"train completed, best_dice_metric: {best_metric_dice:.4f} at epoch: {best_metric_dice_epoch}")
+    # print(f"train completed, best_cl_dice_metric: {best_metric_cl_dice:.4f}" + f" at epoch: {best_metric_cl_dice_epoch}")
     wandb.finish()
 
 if __name__ == "__main__":

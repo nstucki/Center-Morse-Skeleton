@@ -1,0 +1,13 @@
+DATA:
+  DIM: 3                                                        # data dimension
+  DATA_PATH: '/home/home/supro/projects/DMT-images/data/cremi/'                                # Path to dataset
+  FORMAT: '.npy'
+  DATASET: 'cremi_boundaries'                                          # Dataset name
+  IMG_SIZE: [64, 64, 64]                                        # Input image size
+  TRAIN_SAMPLES: "dataset_train.csv"
+  VAL_SAMPLES: "dataset_validation.csv"
+  NUM_PATCH: 10 #10/4                                                  # no of patch from each volume
+  IN_CHANNELS: 1
+  OUT_CHANNELS: 1
+  IMAGE_HAS_CHANNEL_DIMENSION: False
+  LABEL_HAS_CHANNEL_DIMENSION: False

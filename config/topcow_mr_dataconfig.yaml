@@ -4,10 +4,10 @@ DATA:
   KEY: 'mr_roi'
   FORMAT: '.nii.gz'
   DATASET: 'topcow_mr'                                          # Dataset name
-  IMG_SIZE: [32, 32, 32]                                        # Input image size
+  IMG_SIZE: [64, 64, 32]                                        # Input image size
   PIXDIM: [0.20, 0.20, 0.20]
   TRAIN_SAMPLES: 72
   VAL_SAMPLES: 18
-  NUM_PATCH: 8                                                  # no of patch from each volume
+  NUM_PATCH: 2                                                  # no of patch from each volume
   IN_CHANNELS: 1
   OUT_CHANNELS: 1

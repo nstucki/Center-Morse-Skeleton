@@ -22,7 +22,7 @@ import monai.networks.nets
 import torch.utils.data
 import numpy as np
 import time
-from monai.metrics import compute_meandice as dice_metric
+from monai.metrics import compute_dice as dice_metric
 from monai.metrics import compute_hausdorff_distance as hd_metric
 from sklearn.metrics import accuracy_score
 from metrics.rand import adapted_rand

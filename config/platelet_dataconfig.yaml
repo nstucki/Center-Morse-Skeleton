@@ -3,9 +3,9 @@ DATA:
   DATA_PATH: '/home/home/supro/projects/DMT-images/data/platelet/'                                # Path to dataset
   FORMAT: '.npy'
   DATASET: 'platelet'                                          # Dataset name
-  IMG_SIZE: [32, 128, 128]                                        # Input image size
+  IMG_SIZE: [32, 64, 64] #[32,128,128]                                        # Input image size
   TRAIN_SAMPLES: "train-images.npy"
   VAL_SAMPLES: "eval-images.npy"
-  NUM_PATCH: 2 #32                                                 # no of patch from each volume
+  NUM_PATCH: 32 #32, 2                                                 # no of patch from each volume
   IN_CHANNELS: 1
   OUT_CHANNELS: 1
