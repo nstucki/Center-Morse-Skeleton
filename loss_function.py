@@ -11,7 +11,7 @@ import numpy as np
 import typing
 import gudhi.wasserstein
 import monai
-sys.path.append("./metrics/Betti-matching-3D/build")
+sys.path.append("./metrics/Betti-Matching-3D/build")
 from contextlib import contextmanager
 import betti_matching
 from timeit import default_timer
@@ -436,9 +436,11 @@ def _wasserstein_loss(prediction: Float[Tensor, "*spatial_dimensions"],
                       ) -> Float[Tensor, "one_dimension"]:
 
     (prediction_birth_coordinates, prediction_death_coordinates, target_birth_coordinates, target_death_coordinates) = (
-         [torch.tensor(array, device=prediction.device, dtype=torch.long) if array.strides[-1] > 0 else torch.zeros(0, 3, device=prediction.device, dtype=torch.long)
-          for array in [barcode_result_prediction.birth_coordinates, barcode_result_prediction.death_coordinates,
-                        barcode_result_target.birth_coordinates, barcode_result_target.death_coordinates]])
+        [torch.tensor(array, device=prediction.device, dtype=torch.long) if len(array) > 0 else torch.zeros(0, 3, device=prediction.device, dtype=torch.long)
+        for array in [barcode_result_prediction.birth_coordinates, barcode_result_prediction.death_coordinates,
+                    barcode_result_target.birth_coordinates, barcode_result_target.death_coordinates]]
+    )
+
     
     # (M, 2) tensor of persistence pairs for prediction
     prediction_pairs = torch.stack([
