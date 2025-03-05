@@ -5,6 +5,7 @@ sys.path.append("..")
 from build import morse_complex as mc
 from utils.functions import *
 from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 
 class DMTSkeletonize(torch.nn.Module):
 
@@ -56,23 +57,25 @@ class DMTSkeletonize(torch.nn.Module):
 
     def forward(self, img):
 
-        if self.reparameterize=="stochastic":
+        if self.reparameterize == "stochastic":
             img_bin = self._stochastic_discretization(img.detach().clone())
-        elif self.reparameterize=="fixed":
+        elif self.reparameterize == "fixed":
             img_bin = self._fixed_discretization(img.detach().clone())
         else:
             img_bin = img.detach().clone()
 
         if self.foreground:
-            img_bin = 1-img_bin
+            img_bin = 1 - img_bin
 
+        # Convert each image in the batch to a numpy array.
+        # (Assuming each image tensor has shape (C, D, H, W) and you want the first channel.)
         items = [img_[0].cpu().numpy() for img_ in img_bin]
 
-        with ThreadPoolExecutor(max_workers=16) as executor:
-            # Map the function to the items and execute in parallel
+        with ProcessPoolExecutor(max_workers=16) as executor:
+            # Execute _skeleton_ in parallel across processes
             results = list(executor.map(self._skeleton_, items))
             results = [torch.from_numpy(result).to(img.device) for result in results]
 
         skeleton = torch.stack(results, dim=0).unsqueeze(1)
-        return skeleton*img
+        return skeleton * img
         

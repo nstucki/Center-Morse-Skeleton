@@ -30,7 +30,7 @@ from metrics.voi import voi
 from metrics.cldice import ClDiceMetric
 from metrics.betti_matching import BettiMatchingLoss, FiltrationType
 from metrics.betti_error import bett_error
-import tqdm
+from tqdm import tqdm
 
 parser = ArgumentParser()
 parser.add_argument('--model',
@@ -44,6 +44,8 @@ parser.add_argument('--dataconfig',
                     help='data config file (.yaml) containing the dataset specific information.')
 parser.add_argument('--cuda_visible_device', nargs='*', type=int, default=[0],
                         help='list of index where skip conn will be made')
+parser.add_argument('--patch_based', action='store_true',
+                    help='whether to evaluate the model in a patch-based manner')
 
 # DatasetBucket = namedtuple("DatasetBucket", ["data_path", "val_samples", "data_format", "image_has_channel_dimension", "label_has_channel_dimension"])
 # RunMetadata = namedtuple("RunMetadata", ["config", "directory"])
@@ -59,6 +61,17 @@ def elapsed_timer() -> Generator[Callable[[],float], None, None]:
     yield lambda: elapser()
     end = time.perf_counter()
     elapser = lambda: end-start
+
+def extract_patches(tensor, patch_size):
+    """
+    Extracts patches from a tensor of shape (B, C, H, W, D) and returns a list of patches of shape (B, C, patch_size[0], patch_size[1], patch_size[2])
+    """
+    patches = []
+    for i in range(tensor.shape[2] // patch_size[0]):
+        for j in range(tensor.shape[3] // patch_size[1]):
+            for k in range(tensor.shape[4] // patch_size[2]):
+                patches.append(tensor[:, :, i*patch_size[0]:(i+1)*patch_size[0], j*patch_size[1]:(j+1)*patch_size[1], k*patch_size[2]:(k+1)*patch_size[2]])
+    return patches
 
 def main(args):
         # Load the dataconfig files
@@ -103,31 +116,62 @@ def main(args):
     hd_error = []
 
     with torch.no_grad():
-        for val_data in (val_data_tqdm := tqdm.tqdm(val_loader, leave=False)):
+        for val_data in tqdm(val_loader):
             val_images, val_labels = val_data["img"].to(device), val_data["seg"].to(device)
 
             roi_size = tuple(dataconfig.DATA.IMG_SIZE)
-            sw_batch_size = 4
-            if dataconfig.DATA.IN_CHANNELS == 1:
-                val_outputs = sliding_window_inference(val_images, roi_size, sw_batch_size, model)
-            elif dataconfig.DATA.IN_CHANNELS == 3:
-                val_outputs = sliding_window_inference(torch.squeeze(val_images).permute(0,3,1,2), roi_size, sw_batch_size, model)
-            val_outputs = torch.nn.functional.interpolate(val_outputs, val_labels.shape[2:], mode='trilinear', align_corners=True)
-            val_outputs = post_trans(val_outputs)
-            # print(val_outputs.shape, val_labels.shape)
-            # bm_loss_relative_ = betti_matching_loss_relative(val_outputs, val_labels)
-            bm_loss_nonrelative_ = betti_matching_loss_nonrelative(val_outputs, val_labels)
-            dice_ = dice_metric(val_outputs, val_labels)
-            cl_dice_ = cl_dice_loss(val_outputs, val_labels)
-            bett_error_ = bett_error(val_outputs.cpu().squeeze().numpy(), val_labels.cpu().squeeze().numpy())
-            hd_error_ = hd_metric(val_outputs, val_labels)
+            sw_batch_size = 16
 
-            # bm_loss_relative.append(bm_loss_relative_[0].item())
-            bm_loss_nonrelative.append(bm_loss_nonrelative_[0].item())
-            dice.append(dice_.cpu().numpy())
-            cl_dice.append(cl_dice_[0])
-            b_error.append(bett_error_)
-            hd_error.append(hd_error_.cpu().numpy())
+            if not args.patch_based:
+                if dataconfig.DATA.IN_CHANNELS == 1:
+                    val_outputs = sliding_window_inference(val_images, roi_size, sw_batch_size, model, overlap=0.5)
+                elif dataconfig.DATA.IN_CHANNELS == 3:
+                    val_outputs = sliding_window_inference(torch.squeeze(val_images).permute(0,3,1,2), roi_size, sw_batch_size, model, overlap=0.5)
+                val_outputs = torch.nn.functional.interpolate(val_outputs, val_labels.shape[2:], mode='trilinear', align_corners=True)
+                val_outputs = post_trans(val_outputs)
+                # print(val_outputs.shape, val_labels.shape)
+                # bm_loss_relative_ = betti_matching_loss_relative(val_outputs, val_labels)
+            
+                bm_loss_nonrelative_ = betti_matching_loss_nonrelative(val_outputs, val_labels)
+                dice_ = dice_metric(val_outputs, val_labels)
+                cl_dice_ = cl_dice_loss(val_outputs, val_labels)
+                bett_error_ = bett_error(val_outputs.cpu().squeeze().numpy(), val_labels.cpu().squeeze().numpy())
+                hd_error_ = hd_metric(val_outputs, val_labels)
+
+                # bm_loss_relative.append(bm_loss_relative_[0].item())
+                bm_loss_nonrelative.append(bm_loss_nonrelative_[0].item())
+                dice.append(dice_.cpu().numpy())
+                cl_dice.append(cl_dice_[0])
+                b_error.append(bett_error_)
+                hd_error.append(hd_error_.cpu().numpy())
+            else:
+                # extract 125x125x125 patches from both val_outputs and val_labels
+                val_images_patches = extract_patches(val_images, (125, 125, 125))
+                val_labels_patches = extract_patches(val_labels, (125, 125, 125))
+
+                for val_image_patch, val_label_patch in tqdm(zip(val_images_patches, val_labels_patches), total=len(val_images_patches), desc="Patch-based evaluation"):
+                    if dataconfig.DATA.IN_CHANNELS == 1:
+                        val_output_patch = sliding_window_inference(val_image_patch, roi_size, sw_batch_size, model, overlap=0.5)
+                    elif dataconfig.DATA.IN_CHANNELS == 3:
+                        val_output_patch = sliding_window_inference(torch.squeeze(val_image_patch).permute(0,3,1,2), roi_size, sw_batch_size, model, overlap=0.5)
+
+                    val_output_patch = torch.nn.functional.interpolate(val_output_patch, val_label_patch.shape[2:], mode='trilinear', align_corners=True)
+                    val_output_patch = post_trans(val_output_patch)
+
+                    bm_loss_nonrelative_ = betti_matching_loss_nonrelative(val_output_patch, val_label_patch)
+                    dice_ = dice_metric(val_output_patch, val_label_patch)
+                    cl_dice_ = cl_dice_loss(val_output_patch, val_label_patch)
+                    bett_error_ = bett_error(val_output_patch.cpu().squeeze().numpy(), val_label_patch.cpu().squeeze().numpy())
+                    hd_error_ = hd_metric(val_output_patch, val_label_patch)
+
+                    # bm_loss_relative.append(bm_loss_relative_[0].item())
+                    bm_loss_nonrelative.append(bm_loss_nonrelative_[0].item())
+                    dice.append(dice_.cpu().numpy())
+                    cl_dice.append(cl_dice_[0])
+                    b_error.append(bett_error_)
+                    hd_error.append(hd_error_.cpu().numpy())
+
+
 
     # After each checkpoint that has been evaluated, save the (partial) dataframe to csv
     # save_dataframe(validation_results, f"evaluation/evaluation_{args.base_tag}.csv")
